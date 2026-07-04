@@ -13,6 +13,11 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $bridgeRoot = Resolve-Path (Join-Path $scriptDir "..")
 $repoRoot = Resolve-Path (Join-Path $bridgeRoot "..")
 $entry = Join-Path $bridgeRoot "lucas-wechat-gateway-bridge.mjs"
+$vendorRoot = Join-Path $bridgeRoot "vendor\cli-wechat-bridge"
+$requiredVendorFiles = @(
+  "dist\wechat\setup.js",
+  "dist\wechat\wechat-transport.js"
+)
 
 if (-not $Cwd) {
   $Cwd = $repoRoot.Path
@@ -25,6 +30,35 @@ if (-not (Test-Path -LiteralPath $entry)) {
 $node = Get-Command node -ErrorAction SilentlyContinue
 if (-not $node) {
   throw "Node.js is required to start the Lucas WeChat gateway bridge."
+}
+
+$missingVendorFiles = @()
+foreach ($relativePath in $requiredVendorFiles) {
+  $candidate = Join-Path $vendorRoot $relativePath
+  if (-not (Test-Path -LiteralPath $candidate)) {
+    $missingVendorFiles += $candidate
+  }
+}
+
+if ($missingVendorFiles.Count -gt 0) {
+  $missingList = ($missingVendorFiles | ForEach-Object { "  - $_" }) -join [Environment]::NewLine
+  [Console]::Error.WriteLine(@"
+Lucas WeChat gateway bridge optional dependency is not installed.
+
+The GitHub source release does not include copied third-party runtime packages under:
+  wechat-bridge/vendor/
+
+Install or copy a compatible CLI-WeChat-Bridge package to:
+  $vendorRoot
+
+Missing required file(s):
+$missingList
+
+See:
+  docs/OPTIONAL_DEPENDENCIES.md
+  wechat-bridge/VENDOR.md
+"@)
+  exit 1
 }
 
 $env:LUCAS_CHAT_GATEWAY_URL = $GatewayUrl

@@ -1,8 +1,32 @@
 # WeChat Bridge Staging
 
-这个目录用于临时放置“开源微信桥”的接入说明、配置样例和转发示例。
+这个目录用于放置微信桥接入说明、配置样例和转发示例。
 
 它不是 `intake-control/` 或 `lucas-database/` 的运行根，也不直接写数据库、SiYuan 或项目内部文件。微信桥只负责登录微信、接收消息、把消息转给 Lucas Chat Gateway，并把 `reply_text` 发回微信。
+
+## 发布版说明
+
+GitHub 源码发布版不包含复制来的第三方运行包、微信登录态、二维码、cookies 或 `node_modules`。因此干净 clone 后，主页面里的微信桥按钮可能无法直接启动，除非你已经安装或复制了兼容的第三方微信桥包。
+
+Lucas 内置启动脚本当前期待下面的可选依赖存在：
+
+```text
+wechat-bridge/vendor/cli-wechat-bridge/
+```
+
+至少需要包含：
+
+```text
+wechat-bridge/vendor/cli-wechat-bridge/dist/wechat/setup.js
+wechat-bridge/vendor/cli-wechat-bridge/dist/wechat/wechat-transport.js
+```
+
+如果缺少这些文件，启动脚本会提示“optional dependency is not installed”。这是正常的缺依赖状态，不是核心数据库或 intake 服务损坏。更多说明见：
+
+```text
+docs/OPTIONAL_DEPENDENCIES.md
+wechat-bridge/VENDOR.md
+```
 
 ## 推荐连接方式
 
@@ -20,7 +44,7 @@
 -> 微信桥回发微信
 ```
 
-本机已找到并迁移的包见：
+兼容的第三方桥包可以放在：
 
 ```text
 wechat-bridge/vendor/cli-wechat-bridge/
@@ -46,10 +70,10 @@ wechat-bridge/vendor/cli-wechat-bridge/
 .\wechat-bridge\scripts\test-link-entry.ps1 -Message "https://example.com" -Json
 ```
 
-关键点：`CLI-WeChat-Bridge` 包里默认的 `LUCAS_LINK_PROJECT_ROOT` 指向旧目录 `Lucas-SiYuan-Codex`。在这个合并测试仓库里必须覆盖为：
+关键点：如果你使用的是 CLI-WeChat-Bridge 的旧 link entry 兼容路径，`LUCAS_LINK_PROJECT_ROOT` 必须指向当前仓库里的 intake 子项目，例如：
 
 ```text
-C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\intake-control
+C:\path\to\AntTrail-Knowledge-System\intake-control
 ```
 
 旧 link entry 脚本仍可用于兼容测试，但主页面微信桥不再通过旧终端桥启动。

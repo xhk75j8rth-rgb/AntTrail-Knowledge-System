@@ -1,9 +1,9 @@
 # Vendored CLI-WeChat-Bridge
 
-Local package found:
+The GitHub source release does not include copied third-party runtime packages under:
 
 ```text
-C:\nvm4w\nodejs\node_modules\cli-wechat-bridge
+wechat-bridge/vendor/
 ```
 
 Package metadata:
@@ -15,7 +15,7 @@ repository: https://github.com/UNLINEARITY/CLI-WeChat-Bridge
 license: AGPL-3.0-or-later
 ```
 
-Copied into this repository:
+For local WeChat bridge experiments, install or copy a compatible package into:
 
 ```text
 wechat-bridge/vendor/cli-wechat-bridge/
@@ -31,7 +31,16 @@ LICENSE.txt
 package.json
 ```
 
-It does not include `node_modules/`. Use the globally installed command for normal local runs, or install dependencies inside the vendored copy if a fully self-contained copy is required later.
+This directory is ignored by git. Do not commit the copied package, `node_modules/`, login sessions, QR codes, cookies, or account data.
+
+At minimum, the current Lucas Gateway bridge expects:
+
+```text
+wechat-bridge/vendor/cli-wechat-bridge/dist/wechat/setup.js
+wechat-bridge/vendor/cli-wechat-bridge/dist/wechat/wechat-transport.js
+```
+
+Use your own external bridge adapter if you do not want to copy a package into `wechat-bridge/vendor/`.
 
 ## Lucas Hook
 
@@ -56,10 +65,10 @@ python %LUCAS_LINK_PROJECT_ROOT%\tools\wechat_link_entry.py --timeout-sec %LUCAS
 - It sends the original WeChat message to that process via stdin.
 - It sends stdout back to WeChat as the final reply.
 
-For this merge-test repo, `LUCAS_LINK_PROJECT_ROOT` must be:
+For a source clone, `LUCAS_LINK_PROJECT_ROOT` should point to the current repository's intake project, for example:
 
 ```text
-C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\intake-control
+C:\path\to\AntTrail-Knowledge-System\intake-control
 ```
 
 Do not point it at the merge-test root because `tools/wechat_link_entry.py` lives inside `intake-control/`.

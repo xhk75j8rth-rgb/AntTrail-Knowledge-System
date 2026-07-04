@@ -14,9 +14,9 @@
   "cli_wechat_bridge": {
     "package": "cli-wechat-bridge",
     "version_checked": "1.1.1",
-    "source_install_path": "C:\\nvm4w\\nodejs\\node_modules\\cli-wechat-bridge",
+    "source_install_path": "C:\\path\\to\\cli-wechat-bridge",
     "vendored_copy_path": "wechat-bridge/vendor/cli-wechat-bridge",
-    "lucas_link_project_root": "C:\\Users\\pppppqr\\Desktop\\Lucas-Knowledge-System-MergeTest\\intake-control",
+    "lucas_link_project_root": "C:\\path\\to\\AntTrail-Knowledge-System\\intake-control",
     "recommended_start_script": "wechat-bridge/scripts/start-cli-wechat-bridge.ps1"
   },
   "safety": {

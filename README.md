@@ -77,6 +77,7 @@ AntTrail is an early local-first source project. It is useful today, but some ad
 
 - Known limitations: `docs/KNOWN_LIMITATIONS.md`
 - Roadmap: `docs/ROADMAP.md`
+- Optional dependencies: `docs/OPTIONAL_DEPENDENCIES.md`
 
 ## Optional Features
 
@@ -87,7 +88,7 @@ Some workflows require local tools or API keys:
 - Douyin transcription requires `ffmpeg`, `dyt`, `whisper-cli`, and a Whisper model.
 - OCR requires the local RapidOCR setup used by `intake-control/tools/ocr_media.py`.
 - Real BGE-M3 retrieval requires an optional local `.venv-bge-m3` environment and model files.
-- WeChat bridge integration requires the external CLI-WeChat-Bridge package or your own bridge adapter.
+- WeChat bridge integration requires a compatible third-party bridge package or your own bridge adapter. The GitHub source release does not include copied packages under `wechat-bridge/vendor/`.
 
 Without those optional dependencies, the core database and local UI still run.
 

@@ -29,6 +29,8 @@ const MESSAGE_START_GRACE_MS = parsePositiveInt(process.env.LUCAS_WECHAT_MESSAGE
 const POLL_RETRY_BASE_MS = 1000;
 const POLL_RETRY_MAX_MS = 30_000;
 const SEND_RETRY_ATTEMPTS = 3;
+const currentFile = fileURLToPath(import.meta.url);
+const bridgeRoot = path.dirname(currentFile);
 const require = createRequire(import.meta.url);
 
 function parsePositiveInt(value, fallback) {
@@ -56,12 +58,10 @@ function logError(message) {
 
 function loadQrTerminal() {
   const candidates = [
+    process.env.LUCAS_QRCODE_TERMINAL_MODULE,
     "qrcode-terminal",
-    "C:/nvm4w/nodejs/node_modules/cli-wechat-bridge/node_modules/qrcode-terminal",
-    "C:/nvm4w/nodejs/node_modules/npm/node_modules/qrcode-terminal",
-    "C:/Users/pppppqr/AppData/Local/nvm/v22.19.0/node_modules/cli-wechat-bridge/node_modules/qrcode-terminal",
-    "C:/Users/pppppqr/AppData/Local/nvm/v22.19.0/node_modules/npm/node_modules/qrcode-terminal",
-  ];
+    path.join(bridgeRoot, "vendor", "cli-wechat-bridge", "node_modules", "qrcode-terminal"),
+  ].filter(Boolean);
   for (const candidate of candidates) {
     try {
       const loaded = require(candidate);
@@ -442,7 +442,6 @@ async function main() {
   }
 }
 
-const currentFile = fileURLToPath(import.meta.url);
 const invokedFile = process.argv[1] ? path.resolve(process.argv[1]) : "";
 if (invokedFile && path.resolve(currentFile) === invokedFile) {
   main().catch((error) => {

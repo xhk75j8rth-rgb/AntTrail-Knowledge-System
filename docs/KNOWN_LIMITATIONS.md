@@ -8,6 +8,7 @@ AntTrail is usable as a local-first source project, but it is still an early sys
 - Video and social-platform intake depends on local tools and upstream website behavior, so it can break when a platform changes its page structure, rate limits, or access rules.
 - OCR, transcription, and link extraction can be slower on large files, long videos, or machines without optimized local models.
 - Some workflows need optional tools such as `ffmpeg`, `dyt`, `whisper-cli`, RapidOCR, or local model files. The base clone does not include those tools.
+- Optional third-party bridge packages, such as the WeChat bridge runtime, are not committed to the public source release. See `docs/OPTIONAL_DEPENDENCIES.md`.
 
 ## AI Quality
 
@@ -42,4 +43,3 @@ AntTrail is usable as a local-first source project, but it is still an early sys
 - Do not expose the local services to the public internet without reviewing tokens, CORS, and local data paths.
 - Do not commit generated local config, API keys, databases, attachments, logs, or model caches.
 - Review generated cards before relying on them for important decisions.
-

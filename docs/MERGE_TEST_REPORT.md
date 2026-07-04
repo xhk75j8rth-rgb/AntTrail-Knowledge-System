@@ -9,7 +9,7 @@ The non-destructive merge test succeeded.
 Test root:
 
 ```text
-C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest
+<repo-root>
 ```
 
 Subprojects:
@@ -141,7 +141,7 @@ Intake API:         http://127.0.0.1:13963
 Test database:
 
 ```text
-C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\runtime-test\lucas-merge-test.db
+<repo-root>\runtime-test\lucas-merge-test.db
 ```
 
 ### Checks
@@ -204,7 +204,7 @@ This re-run started the same merged layout on isolated ports and used a fresh te
 ```text
 Lucas Database API: http://127.0.0.1:18765
 Intake API:         http://127.0.0.1:13963
-Test database:      C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\runtime-test\lucas-merge-test-20260702-232957.db
+Test database:      <repo-root>\runtime-test\lucas-merge-test-20260702-232957.db
 ```
 
 Result:
