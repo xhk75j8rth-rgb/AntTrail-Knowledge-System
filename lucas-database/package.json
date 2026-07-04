@@ -1,0 +1,50 @@
+{
+  "name": "lucas-database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AntTrail Database / 蚁迹数据库 - local structured knowledge database with Agent API.",
+  "main": "dist-electron/main.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "scripts": {
+    "dev": "concurrently -k -n api,web \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "tsx watch backend/server.ts",
+    "dev:web": "vite --host 127.0.0.1",
+    "dev:electron": "concurrently -k -n api,web,electron \"npm:dev:api\" \"npm:dev:web\" \"wait-on http://127.0.0.1:5173 http://127.0.0.1:8765/api/health && npm run build:electron && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron dist-electron/main.js\"",
+    "build": "tsc -b && vite build && npm run build:electron",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "typecheck": "tsc -b --noEmit",
+    "start:api": "tsx backend/server.ts",
+    "preview": "vite preview --host 127.0.0.1"
+  },
+  "dependencies": {
+    "@types/d3-force": "^3.0.10",
+    "@types/multer": "^2.1.0",
+    "@types/three": "^0.185.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "cors": "^2.8.5",
+    "d3-force": "^3.0.0",
+    "electron": "^34.0.2",
+    "express": "^4.21.2",
+    "lucide-react": "^0.468.0",
+    "multer": "^2.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "sqlite-vec": "^0.1.9",
+    "three": "^0.185.0"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/node": "^22.10.5",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.7",
+    "wait-on": "^8.0.1"
+  }
+}

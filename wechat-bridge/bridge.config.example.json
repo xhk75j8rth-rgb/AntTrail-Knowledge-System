@@ -1,0 +1,28 @@
+{
+  "bridge_project": "your-open-source-wechat-bridge-name",
+  "chat_gateway": {
+    "message_endpoint": "http://127.0.0.1:3963/api/chat/messages/async",
+    "poll_endpoint_template": "http://127.0.0.1:3963/api/chat/batches/{batch_id}",
+    "timeout_sec": 3600,
+    "dry_run": false
+  },
+  "wechat": {
+    "scan_login": true,
+    "auto_reply": true,
+    "allowed_conversations": []
+  },
+  "cli_wechat_bridge": {
+    "package": "cli-wechat-bridge",
+    "version_checked": "1.1.1",
+    "source_install_path": "C:\\nvm4w\\nodejs\\node_modules\\cli-wechat-bridge",
+    "vendored_copy_path": "wechat-bridge/vendor/cli-wechat-bridge",
+    "lucas_link_project_root": "C:\\Users\\pppppqr\\Desktop\\Lucas-Knowledge-System-MergeTest\\intake-control",
+    "recommended_start_script": "wechat-bridge/scripts/start-cli-wechat-bridge.ps1"
+  },
+  "safety": {
+    "do_not_log_secrets": true,
+    "do_not_call_mcp_in_production": true,
+    "do_not_write_siyuan_workspace_files": true,
+    "do_not_write_lucas_database_file_directly": true
+  }
+}

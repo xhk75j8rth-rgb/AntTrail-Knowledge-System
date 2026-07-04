@@ -1,0 +1,20 @@
+{
+  "schema_name": "TaxonomyTreeV1",
+  "source": "example",
+  "root_path": "知识卡",
+  "categories": [
+    {"path": ["知识卡", "AI编程"]},
+    {"path": ["知识卡", "AI开发"]},
+    {"path": ["知识卡", "AI"]},
+    {
+      "path": ["知识卡", "Inbox"],
+      "children": [
+        {"path": ["知识卡", "Inbox", "待分类"]}
+      ]
+    },
+    {"path": ["知识卡", "外贸"]},
+    {"path": ["知识卡", "前端开发"]},
+    {"path": ["知识卡", "GSAP"]},
+    {"path": ["知识卡", "软件工程"]}
+  ]
+}

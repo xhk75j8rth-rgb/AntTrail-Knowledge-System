@@ -1,0 +1,29 @@
+{
+  "active_provider": "lucas_database",
+  "providers": {
+    "lucas_database": {
+      "base_url": "http://127.0.0.1:8765",
+      "endpoint": "/api/cards/ingest"
+    },
+    "siyuan": {
+      "base_url": "http://127.0.0.1:6806",
+      "endpoint": "/api/filetree/createDocWithMd"
+    },
+    "custom_http": {
+      "base_url": "http://127.0.0.1:8000",
+      "endpoint": "/api/cards/ingest"
+    }
+  },
+  "database_targets": [
+    {
+      "id": "main",
+      "label": "Local AntTrail Database",
+      "base_url": "http://127.0.0.1:8765",
+      "web_url": "http://127.0.0.1:5173/",
+      "endpoint": "/api/cards/ingest",
+      "api_key_env": "LUCAS_DB_API_KEY",
+      "enabled": true
+    }
+  ],
+  "selected_database_target_ids": ["main"]
+}

@@ -1,0 +1,14 @@
+{
+  "texts": [
+    "这是一个关于 Agent 项目交接协议的知识块。",
+    "Lucas Database uses nodes, cards, chunks and vector indexes.",
+    "知识图谱和向量检索应该结合使用，但向量数据库只是语义索引，不是主数据库。",
+    "# Vector Indexing V0\n\nLucas Database 能够从 Node / Card 主数据生成 chunks，并使用 mock embedding 跑通向量引用流程。",
+    "ComposedCardV1 knowledge_blocks: concept=派生索引; explanation=chunks、embedding_jobs 和 embedding_vectors 都可以从主数据重建。",
+    "Agent handoff notes should preserve stable facts, validation results, risks, and next-step context without storing secrets.",
+    "中文长文本：Lucas Database 的 Node / Card / Relation 数据模型强调主数据和派生视图分离。Node 保存内容视图和树结构，Card 保存完整 ComposedCardV1 JSON，Graph 和 Vector Index 都应该能够从这些主数据重新生成。这样即使后续替换 BGE-M3、sqlite-vec 或其他向量库，也不会改变知识库的权威数据来源。",
+    "Hybrid retrieval can combine structured graph relations with dense vector retrieval, but ranking logic should remain outside the storage schema until there is enough product evidence.",
+    "中英混合文本：BGE-M3 embedding provider should expose embedBatch(texts) and return stable 1024-dimensional vectors for Chinese and English content.",
+    "风险提示：首次加载模型可能较慢，Windows 本地依赖、CPU 性能、内存占用和 Electron 打包方式都需要单独验证。"
+  ]
+}

@@ -1,0 +1,13 @@
+.env
+*.log
+logs/
+runtime/
+sessions/
+qrcode/
+node_modules/
+vendor/**/node_modules/
+vendor/**/.env
+vendor/**/logs/
+vendor/**/runtime/
+vendor/**/sessions/
+vendor/**/qrcode/

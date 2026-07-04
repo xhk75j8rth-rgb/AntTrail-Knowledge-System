@@ -1,0 +1,13 @@
+{
+  "name": "lucas-mcp-retrieval",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP stdio server exposing Lucas Database Agent Retrieve API.",
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  }
+}

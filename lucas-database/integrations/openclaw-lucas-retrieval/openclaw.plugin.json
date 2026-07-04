@@ -1,0 +1,51 @@
+{
+  "id": "lucas-retrieval",
+  "name": "Lucas Retrieval",
+  "description": "Retrieve grounded context from the local Lucas Database Agent Retrieve API.",
+  "version": "0.1.0",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "apiBaseUrl": {
+        "type": "string",
+        "description": "Lucas Database API base URL. Defaults to LUCAS_AGENT_RETRIEVE_BASE_URL, LUCAS_DB_API_BASE_URL, or http://127.0.0.1:8765."
+      },
+      "apiToken": {
+        "type": "string",
+        "description": "Optional bearer token if the local Lucas read API is protected in a future deployment."
+      },
+      "defaultLimit": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 50,
+        "description": "Default retrieval result limit."
+      },
+      "defaultTokenBudget": {
+        "type": "integer",
+        "minimum": 200,
+        "maximum": 12000,
+        "description": "Default context token budget."
+      },
+      "defaultMaxChunksPerSource": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 10,
+        "description": "Default maximum accepted chunks per source."
+      },
+      "timeoutMs": {
+        "type": "integer",
+        "minimum": 1000,
+        "maximum": 300000,
+        "description": "HTTP timeout for one Lucas retrieval call."
+      }
+    }
+  },
+  "activation": {
+    "onStartup": true
+  },
+  "contracts": {
+    "tools": [
+      "lucas_retrieve"
+    ]
+  }
+}

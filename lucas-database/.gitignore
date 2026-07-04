@@ -1,0 +1,14 @@
+node_modules/
+.venv-bge-m3/
+__pycache__/
+dist/
+dist-electron/
+*.tsbuildinfo
+data/*.db
+data/*.db-shm
+data/*.db-wal
+data/attachments/
+*.log
+.lucas-*.pid
+.env
+.DS_Store

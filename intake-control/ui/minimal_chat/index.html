@@ -1,0 +1,5368 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AntTrail / 蚁迹</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f7f9;
+      --panel: #ffffff;
+      --border: #d7dde5;
+      --text: #1d2430;
+      --muted: #5f6b7a;
+      --accent: #1769ff;
+      --good: #0f8a5f;
+      --bad: #c43d3d;
+      --warn: #9a6700;
+      --shadow: 0 8px 24px rgba(20, 25, 35, 0.08);
+    }
+    * { box-sizing: border-box; }
+    * {
+      scrollbar-color: #cbd7e8 transparent;
+      scrollbar-width: thin;
+    }
+    *::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    *::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    *::-webkit-scrollbar-thumb {
+      background: #cbd7e8;
+      border: 2px solid transparent;
+      border-radius: 999px;
+      background-clip: padding-box;
+    }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .wrap {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 20px 20px 0;
+    }
+    .grid {
+      display: grid;
+      gap: 16px;
+      grid-template-columns: 1.05fr 0.95fr;
+    }
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      padding: 16px;
+    }
+    h1 {
+      font-size: 18px;
+      margin: 0 0 12px;
+    }
+    h2 {
+      font-size: 15px;
+      margin: 0 0 12px;
+    }
+    .field { margin-bottom: 12px; }
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+    input, select, textarea, pre {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font: inherit;
+      background: #fff;
+    }
+    input, select, textarea {
+      padding: 10px 12px;
+      color: var(--text);
+    }
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+    }
+    pre {
+      margin: 0;
+      padding: 12px;
+      overflow: auto;
+      min-height: 120px;
+      background: #fbfcfe;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .two {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .row label {
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+    }
+    .row input[type="checkbox"] { width: 16px; height: 16px; }
+    button {
+      border: 0;
+      border-radius: 8px;
+      background: var(--accent);
+      color: #fff;
+      padding: 10px 16px;
+      font: inherit;
+      cursor: pointer;
+    }
+    button.secondary {
+      background: #edf2f8;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    button:disabled { opacity: 0.65; cursor: not-allowed; }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+      background: #c0c6cf;
+    }
+    .dot.ok { background: var(--good); }
+    .dot.bad { background: var(--bad); }
+    .dot.warn { background: var(--warn); }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.5;
+      margin: 8px 0 0;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 4px 9px;
+      font-size: 12px;
+      color: var(--muted);
+      background: #fbfcfe;
+    }
+    .route-box {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fbfcfe;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    .route-title {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .route-title strong {
+      font-size: 14px;
+    }
+    .platform-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 10px;
+    }
+    .platform-card {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      padding: 10px;
+      min-width: 0;
+    }
+    .platform-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+    .platform-name {
+      font-size: 14px;
+      font-weight: 700;
+    }
+    .platform-meta {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+      min-height: 34px;
+    }
+    .mini-btn {
+      width: 100%;
+      padding: 8px 10px;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    .mini-btn.secondary {
+      background: #edf2f8;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+    .platform-actions {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .platform-actions .mini-btn {
+      margin-top: 0;
+    }
+    .storage-target-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .storage-target-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: flex-start;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+      padding: 12px;
+      min-width: 0;
+    }
+    .storage-target-card.legacy-target {
+      display: none;
+    }
+    .storage-target-card input {
+      width: 16px;
+      height: 16px;
+      margin-top: 3px;
+    }
+    .storage-target-card strong {
+      display: block;
+      font-size: 14px;
+    }
+    .storage-target-card span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .storage-target-actions {
+      grid-column: 2;
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .storage-target-actions .mini-btn {
+      width: auto;
+      margin-top: 0;
+    }
+    .database-target-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin: 14px 0 10px;
+    }
+    .database-target-title strong {
+      display: block;
+      font-size: 14px;
+      color: var(--text);
+      margin-bottom: 3px;
+    }
+    .database-target-title span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .database-target-list {
+      display: grid;
+      gap: 10px;
+    }
+    .database-target-row {
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: #fff;
+    }
+    .database-target-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .database-target-head label {
+      margin: 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text);
+      font-weight: 700;
+    }
+    .database-target-head input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+    .database-target-grid {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr;
+      gap: 10px;
+    }
+    .database-target-grid .field {
+      margin-bottom: 0;
+    }
+    .database-target-actions {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex: 0 0 auto;
+    }
+    .database-target-remove {
+      flex: 0 0 auto;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      border-radius: 999px;
+      padding: 3px 8px;
+      font-size: 12px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      white-space: nowrap;
+      background: #fff;
+    }
+    .badge.ok {
+      color: var(--good);
+      border-color: rgba(15, 138, 95, 0.28);
+      background: #f1fbf7;
+    }
+    .badge.warn {
+      color: var(--warn);
+      border-color: rgba(154, 103, 0, 0.28);
+      background: #fff8e8;
+    }
+    @media (max-width: 960px) {
+      .grid { grid-template-columns: 1fr; }
+      .kvs, .two, .platform-grid, .storage-target-grid, .database-target-grid { grid-template-columns: 1fr; }
+    }
+
+    :root {
+      --bg: #f3f7fc;
+      --panel: #ffffff;
+      --panel-soft: #f7faff;
+      --border: #dfe6f1;
+      --border-strong: #c9d6ea;
+      --text: #172033;
+      --muted: #758096;
+      --accent: #2f62f3;
+      --accent-2: #5fa6ff;
+      --accent-soft: #eaf2ff;
+      --shadow: 0 16px 42px rgba(40, 58, 92, 0.1);
+      --shadow-soft: 0 8px 22px rgba(40, 58, 92, 0.08);
+      --radius: 8px;
+    }
+
+    html,
+    body {
+      height: 100%;
+      overflow: hidden;
+    }
+
+    body {
+      min-width: 320px;
+      background:
+        radial-gradient(circle at 72% 24%, rgba(88, 158, 255, 0.12), transparent 28%),
+        linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body.drawer-open {
+      overflow: hidden;
+    }
+
+    .app-frame {
+      display: grid;
+      grid-template-rows: 82px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 22px;
+      height: 82px;
+      padding: 0 30px;
+      background: rgba(255, 255, 255, 0.96);
+      border-bottom: 1px solid rgba(203, 214, 232, 0.82);
+      box-shadow: 0 2px 12px rgba(36, 51, 83, 0.06);
+      backdrop-filter: blur(16px);
+      z-index: 4;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 14px;
+    }
+
+    .brand-logo {
+      width: 44px;
+      height: 44px;
+      display: block;
+      border-radius: 8px;
+      object-fit: contain;
+      filter: drop-shadow(0 7px 14px rgba(48, 98, 243, 0.2));
+    }
+
+    .brand-name {
+      display: flex;
+      align-items: baseline;
+      gap: 18px;
+      min-width: 0;
+    }
+
+    .brand-name strong {
+      font-size: 28px;
+      line-height: 1;
+      letter-spacing: 0;
+      white-space: nowrap;
+    }
+
+    .brand-name span {
+      color: #728096;
+      font-size: 16px;
+      white-space: nowrap;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 16px;
+      min-width: 0;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 28px;
+      background: #d9e2ef;
+    }
+
+    button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 38px;
+      border: 1px solid transparent;
+      border-radius: var(--radius);
+      font-weight: 600;
+      transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    .primary-btn {
+      background: linear-gradient(135deg, #3768ff 0%, #2654e9 100%);
+      color: #fff;
+      box-shadow: 0 10px 22px rgba(47, 98, 243, 0.26);
+    }
+
+    .secondary-btn,
+    button.secondary {
+      background: rgba(255, 255, 255, 0.92);
+      color: #202a3d;
+      border-color: #cfdae9;
+      box-shadow: 0 5px 15px rgba(38, 57, 91, 0.06);
+    }
+
+    .ghost-btn {
+      background: transparent;
+      color: #566279;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .icon-btn {
+      width: 46px;
+      min-width: 46px;
+      height: 46px;
+      padding: 0;
+      background: rgba(255, 255, 255, 0.88);
+      color: #172033;
+      border: 1px solid #d9e2ef;
+      box-shadow: 0 5px 16px rgba(43, 59, 92, 0.07);
+    }
+
+    .icon-only {
+      width: 38px;
+      min-width: 38px;
+      height: 38px;
+      padding: 0;
+      color: #4a5870;
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .icon-only:hover:not(:disabled) {
+      background: #f0f5fc;
+      border-color: #dce6f4;
+      transform: none;
+    }
+
+    .top-action {
+      min-width: 142px;
+      height: 54px;
+      padding: 0 24px;
+      font-size: 18px;
+    }
+
+    .wechat-action {
+      color: #113a29;
+      background: #f2fff7;
+      border-color: #bfe8cf;
+      box-shadow: 0 10px 22px rgba(7, 193, 96, 0.14);
+    }
+
+    .wechat-action:hover:not(:disabled) {
+      border-color: #8fdcac;
+      background: #e9fff1;
+    }
+
+    .wechat-icon {
+      width: 22px;
+      height: 22px;
+      display: block;
+      flex: 0 0 auto;
+    }
+
+    .settings-action {
+      height: 54px;
+      min-width: 136px;
+      padding: 0 24px;
+      font-size: 17px;
+    }
+
+    .user-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      color: #172033;
+      font-size: 17px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    [data-lucide],
+    svg.lucide {
+      width: 20px;
+      height: 20px;
+      flex: 0 0 auto;
+      stroke-width: 2;
+    }
+
+    .avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 999px;
+      object-fit: cover;
+      background: #eef4ff;
+    }
+
+    .workspace {
+      min-height: 0;
+      height: calc(100vh - 82px);
+      padding: 20px 20px 0;
+      display: grid;
+      grid-template-columns: 360px minmax(0, 1fr);
+      gap: 14px;
+    }
+
+    .sidebar,
+    .chat-panel {
+      min-height: 0;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid rgba(214, 224, 240, 0.9);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-soft);
+    }
+
+    .sidebar {
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr) auto;
+      padding: 18px;
+      gap: 18px;
+      overflow: hidden;
+    }
+
+    .sidebar-actions {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 62px;
+      gap: 14px;
+    }
+
+    .new-chat-btn {
+      height: 48px;
+      font-size: 17px;
+    }
+
+    .conversation-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #222c40;
+      padding: 0 6px;
+    }
+
+    .conversation-toolbar h2 {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+    }
+
+    .conversation-list {
+      display: grid;
+      gap: 10px;
+      overflow: auto;
+      padding-right: 2px;
+      scrollbar-width: thin;
+    }
+
+    .conversation-item {
+      display: grid;
+      grid-template-columns: 28px minmax(0, 1fr) auto auto;
+      gap: 8px;
+      align-items: center;
+      min-height: 56px;
+      padding: 9px 10px;
+      border-radius: var(--radius);
+      color: #1f293d;
+      border: 1px solid transparent;
+      cursor: pointer;
+    }
+
+    .conversation-item:hover,
+    .conversation-item.active {
+      background: linear-gradient(90deg, #edf4ff 0%, #f5f8ff 100%);
+      border-color: #d8e6ff;
+    }
+
+    .conversation-text {
+      min-width: 0;
+    }
+
+    .conversation-title {
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 600;
+      line-height: 1.35;
+    }
+
+    .conversation-edit-input {
+      width: 100%;
+      min-height: 32px;
+      padding: 5px 8px;
+      color: #18233a;
+      border: 1px solid #b9cdf7;
+      border-radius: 6px;
+      background: #ffffff;
+      font-size: 14px;
+      font-weight: 600;
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(47, 98, 243, 0.1);
+    }
+
+    .conversation-date {
+      display: block;
+      margin-top: 2px;
+      color: #8290a5;
+      font-size: 13px;
+    }
+
+    .conversation-time {
+      color: #7d8aa0;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .conversation-actions {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 160ms ease;
+    }
+
+    .conversation-item:hover .conversation-actions,
+    .conversation-item.active .conversation-actions,
+    .conversation-item.editing .conversation-actions,
+    .conversation-item:focus-within .conversation-actions {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .conversation-action {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      padding: 0;
+      color: #5d6b80;
+      background: rgba(255, 255, 255, 0.74);
+      border-color: #dbe5f2;
+      box-shadow: none;
+    }
+
+    .conversation-action:hover:not(:disabled) {
+      color: #2453d6;
+      background: #ffffff;
+      transform: none;
+    }
+
+    .conversation-action.danger:hover:not(:disabled) {
+      color: #b42318;
+      border-color: #ffd2d2;
+      background: #fff3f3;
+    }
+
+    .conversation-action [data-lucide],
+    .conversation-action svg.lucide {
+      width: 15px;
+      height: 15px;
+    }
+
+    .clear-history-btn {
+      width: 100%;
+      height: 46px;
+      background: rgba(255, 255, 255, 0.82);
+      color: #2c3649;
+      border: 1px solid #dce4ef;
+      box-shadow: none;
+    }
+
+    .chat-panel {
+      display: grid;
+      grid-template-rows: 76px minmax(0, 1fr);
+      overflow: hidden;
+    }
+
+    .chat-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 0;
+      padding: 0 28px;
+      border-bottom: 1px solid #dfe6f1;
+      background: rgba(255, 255, 255, 0.98);
+    }
+
+    .chat-title {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 12px;
+    }
+
+    .chat-title h1 {
+      margin: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-size: 19px;
+      font-weight: 700;
+    }
+
+    .chat-tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: #57657b;
+    }
+
+    .tool-action {
+      min-height: 38px;
+      padding: 0 10px;
+      color: #526179;
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      font-weight: 500;
+    }
+
+    .chat-divider {
+      width: 1px;
+      height: 24px;
+      background: #dbe3ef;
+      margin: 0 4px;
+    }
+
+    .chat-body {
+      min-height: 0;
+      display: grid;
+      grid-template-rows: minmax(0, 1fr) auto auto;
+      background:
+        radial-gradient(circle at 36% 10%, rgba(79, 140, 255, 0.08), transparent 24%),
+        #ffffff;
+    }
+
+    .chat-stream {
+      min-height: 0;
+      overflow: auto;
+      padding: 10px 28px 10px;
+      scrollbar-width: thin;
+    }
+
+    .task-queue-shell {
+      margin: 0 28px;
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transform: translateY(10px);
+      pointer-events: none;
+      transition: max-height 260ms ease, opacity 220ms ease, transform 220ms ease, margin-bottom 220ms ease;
+    }
+
+    .task-queue-shell.is-visible {
+      max-height: 310px;
+      margin-bottom: 12px;
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .task-queue-panel {
+      display: grid;
+      gap: 12px;
+      padding: 12px 16px 14px;
+      border: 1px solid #d8e4f5;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 10px 26px rgba(44, 64, 104, 0.12);
+      backdrop-filter: blur(14px);
+    }
+
+    .task-queue-head {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .task-queue-title-btn {
+      min-width: 0;
+      min-height: 34px;
+      justify-content: flex-start;
+      padding: 0;
+      color: #172033;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
+      text-align: left;
+      font-weight: 700;
+    }
+
+    .task-queue-title-btn:hover:not(:disabled) {
+      background: transparent;
+      transform: none;
+    }
+
+    .task-queue-title-btn:focus,
+    .task-queue-hide:focus,
+    .queue-toggle-btn:focus {
+      outline: none;
+    }
+
+    .task-queue-title-btn:focus-visible,
+    .task-queue-hide:focus-visible,
+    .queue-toggle-btn:focus-visible {
+      box-shadow: 0 0 0 3px rgba(47, 98, 243, 0.16);
+    }
+
+    .task-queue-title {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .task-queue-title strong {
+      font-size: 17px;
+      white-space: nowrap;
+    }
+
+    .task-queue-title span {
+      overflow: hidden;
+      color: #75849a;
+      font-size: 13px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task-queue-chevron {
+      color: #48617e;
+      transition: transform 200ms ease;
+    }
+
+    .task-queue-panel.is-collapsed .task-queue-chevron {
+      transform: rotate(180deg);
+    }
+
+    .task-queue-meta {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+      min-width: 0;
+      color: #71819a;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .task-queue-state {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 10px;
+      border-radius: 999px;
+      color: #16704f;
+      background: #e8f8f1;
+      font-weight: 700;
+    }
+
+    .task-queue-state.warn {
+      color: #8a5a00;
+      background: #fff5dc;
+    }
+
+    .task-queue-state.bad {
+      color: #b42318;
+      background: #fff0f0;
+    }
+
+    .task-queue-state.idle {
+      color: #647188;
+      background: #edf2f8;
+    }
+
+    .task-queue-hide {
+      width: 30px;
+      min-width: 30px;
+      height: 30px;
+      color: #74839a;
+    }
+
+    .task-queue-progress {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: center;
+      gap: 14px;
+    }
+
+    .task-queue-progress-label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      min-width: 0;
+      color: #202b3f;
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .task-queue-progress-label span {
+      overflow: hidden;
+      color: #6c7a91;
+      font-size: 13px;
+      font-weight: 600;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task-queue-progress-bar {
+      display: none;
+    }
+
+    .task-queue-progress-fill {
+      display: none;
+    }
+
+    .task-queue-progress-fill::after {
+      content: none;
+    }
+
+    .task-queue-panel.is-complete .task-queue-progress-fill::after,
+    .task-queue-panel.is-idle .task-queue-progress-fill::after {
+      animation: none;
+    }
+
+    .task-queue-panel.is-idle .task-queue-progress-fill {
+      min-width: 0;
+    }
+
+    .task-queue-progress-number {
+      display: none;
+    }
+
+    .task-queue-details {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 10px;
+      max-height: 220px;
+      overflow: hidden;
+      opacity: 1;
+      transition: max-height 220ms ease, opacity 180ms ease;
+    }
+
+    .task-queue-panel.is-collapsed .task-queue-details {
+      max-height: 0;
+      opacity: 0;
+    }
+
+    .task-stage-list {
+      display: none;
+    }
+
+    .task-stage {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 34px;
+      padding: 0 11px;
+      border: 1px solid #dce6f4;
+      border-radius: 8px;
+      color: #5f7088;
+      background: #ffffff;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .task-stage-index {
+      display: inline-grid;
+      width: 20px;
+      height: 20px;
+      place-items: center;
+      border-radius: 999px;
+      color: #71819a;
+      background: #edf2f8;
+      font-size: 12px;
+    }
+
+    .task-stage-index [data-lucide],
+    .task-stage-index svg.lucide {
+      width: 13px;
+      height: 13px;
+    }
+
+    .task-stage.done {
+      color: #1f4ed8;
+      border-color: #cfe0ff;
+      background: #f3f7ff;
+    }
+
+    .task-stage.done .task-stage-index {
+      color: #ffffff;
+      background: #2f62f3;
+    }
+
+    .task-stage.active {
+      color: #214fe2;
+      border-color: #bcd1ff;
+      background: #eef5ff;
+      box-shadow: inset 0 0 0 1px rgba(47, 98, 243, 0.1);
+    }
+
+    .task-stage.active .task-stage-index {
+      color: #ffffff;
+      background: #2f62f3;
+      box-shadow: 0 0 0 4px rgba(47, 98, 243, 0.12);
+    }
+
+    .task-queue-items {
+      display: grid;
+      align-content: start;
+      gap: 10px;
+      max-height: 196px;
+      margin: 0;
+      padding: 0;
+      overflow: auto;
+      list-style: none;
+    }
+
+    .task-queue-item {
+      display: grid;
+      grid-template-columns: 10px minmax(0, 1fr) auto;
+      align-items: start;
+      gap: 8px 10px;
+      min-height: 74px;
+      padding: 10px 12px;
+      border: 1px solid #e0e8f4;
+      border-radius: 8px;
+      color: #27344a;
+      background: #ffffff;
+      font-size: 13px;
+    }
+
+    .task-queue-dot {
+      width: 9px;
+      height: 9px;
+      margin-top: 5px;
+      border-radius: 999px;
+      background: #c5cfdd;
+    }
+
+    .task-queue-item.running .task-queue-dot {
+      background: #2f62f3;
+      box-shadow: 0 0 0 5px rgba(47, 98, 243, 0.1);
+      animation: queue-pulse 1.4s ease-in-out infinite;
+    }
+
+    .task-queue-item.done .task-queue-dot {
+      background: #13a66b;
+    }
+
+    .task-queue-item.warn .task-queue-dot {
+      background: #d28a00;
+    }
+
+    .task-queue-item.bad .task-queue-dot {
+      background: #c43d3d;
+    }
+
+    .task-queue-item-title {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .task-queue-item-status {
+      color: #4961ff;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .task-queue-item.done .task-queue-item-status {
+      color: #14875d;
+    }
+
+    .task-queue-item.warn .task-queue-item-status {
+      color: #966400;
+    }
+
+    .task-queue-item.bad .task-queue-item-status {
+      color: #b42318;
+    }
+
+    .task-item-progress {
+      position: relative;
+      grid-column: 2 / 4;
+      height: 6px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: #e8edf5;
+    }
+
+    .task-item-progress-fill {
+      position: absolute;
+      inset: 0 auto 0 0;
+      width: var(--item-progress, 0%);
+      min-width: 0;
+      overflow: hidden;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #2f62f3 0%, #4aa6ff 100%);
+      transition: width 220ms ease;
+    }
+
+    .task-queue-item.running .task-item-progress-fill::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(115deg, transparent 0%, rgba(255, 255, 255, 0.42) 42%, transparent 72%);
+      animation: queue-stripe 1.4s linear infinite;
+    }
+
+    .task-queue-item.bad .task-item-progress-fill {
+      width: 100%;
+      background: #d34a4a;
+    }
+
+    .task-item-stages {
+      grid-column: 2 / 4;
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .task-item-stage {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 0;
+      height: 22px;
+      padding: 0 6px;
+      border: 1px solid #e0e8f4;
+      border-radius: 6px;
+      color: #687992;
+      background: #f8fafd;
+      font-size: 11px;
+      font-weight: 700;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .task-item-stage.done {
+      color: #1f4ed8;
+      border-color: #cfe0ff;
+      background: #f3f7ff;
+    }
+
+    .task-item-stage.active {
+      color: #214fe2;
+      border-color: #bcd1ff;
+      background: #eef5ff;
+    }
+
+    .task-item-stage.bad {
+      color: #b42318;
+      border-color: #ffc9c4;
+      background: #fff4f2;
+    }
+
+    .queue-toggle-btn {
+      min-height: 34px;
+      padding: 0 10px;
+      color: #4f5e75;
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .queue-toggle-btn:hover:not(:disabled),
+    .queue-toggle-btn.is-active {
+      color: #2355e6;
+      background: #eef4ff;
+      border-color: #d7e5ff;
+      transform: none;
+    }
+
+    .queue-toggle-count {
+      display: inline-grid;
+      min-width: 20px;
+      height: 20px;
+      padding: 0 6px;
+      place-items: center;
+      border-radius: 999px;
+      color: #ffffff;
+      background: #2f62f3;
+      font-size: 12px;
+      line-height: 1;
+    }
+
+    .queue-toggle-btn.is-empty .queue-toggle-count {
+      color: #74839a;
+      background: #edf2f8;
+    }
+
+    @keyframes queue-stripe {
+      from { transform: translateX(-65%); }
+      to { transform: translateX(110%); }
+    }
+
+    @keyframes queue-pulse {
+      0%, 100% { box-shadow: 0 0 0 4px rgba(47, 98, 243, 0.1); }
+      50% { box-shadow: 0 0 0 8px rgba(47, 98, 243, 0.04); }
+    }
+
+    .message-row {
+      display: grid;
+      grid-template-columns: 52px minmax(0, 1fr) 52px;
+      align-items: start;
+      gap: 14px;
+      margin-bottom: 8px;
+    }
+
+    .message-row.user {
+      grid-template-columns: 52px minmax(0, 1fr) 52px;
+    }
+
+    .message-row.user .message-content {
+      grid-column: 2;
+      justify-self: end;
+      text-align: right;
+    }
+
+    .message-row.user .message-avatar {
+      grid-column: 3;
+    }
+
+    .message-row.assistant .message-avatar {
+      grid-column: 1;
+    }
+
+    .message-row.assistant .message-content {
+      grid-column: 2;
+    }
+
+    .message-content {
+      min-width: 0;
+      max-width: min(620px, 100%);
+    }
+
+    .message-avatar {
+      width: 52px;
+      height: 52px;
+      display: grid;
+      place-items: center;
+      border-radius: 999px;
+      background: #eef4ff;
+      overflow: hidden;
+    }
+
+    .message-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .assistant-avatar img {
+      width: 38px;
+      height: 38px;
+      border-radius: 8px;
+    }
+
+    .bubble {
+      max-width: min(620px, 100%);
+      padding: 13px 20px;
+      border-radius: var(--radius);
+      font-size: 16px;
+      line-height: 1.55;
+      letter-spacing: 0;
+      text-align: left;
+      white-space: normal;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .bubble a,
+    .bubble code,
+    .bubble pre {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .bubble p {
+      margin: 0 0 8px;
+    }
+
+    .bubble p:last-child {
+      margin-bottom: 0;
+    }
+
+    .bubble h2,
+    .bubble h3,
+    .bubble h4,
+    .bubble h5 {
+      margin: 12px 0 6px;
+      font-size: 16px;
+      line-height: 1.35;
+      font-weight: 700;
+      color: #17233b;
+      letter-spacing: 0;
+    }
+
+    .bubble h2:first-child,
+    .bubble h3:first-child,
+    .bubble h4:first-child,
+    .bubble h5:first-child {
+      margin-top: 0;
+    }
+
+    .bubble ol,
+    .bubble ul {
+      margin: 8px 0 0;
+      padding-left: 22px;
+    }
+
+    .bubble li + li {
+      margin-top: 4px;
+    }
+
+    .bubble code {
+      padding: 1px 4px;
+      border-radius: 4px;
+      background: #eef3fb;
+      font-size: 0.94em;
+    }
+
+    .bubble.assistant {
+      background: #fff;
+      border: 1px solid #e1e7f0;
+      box-shadow: 0 5px 15px rgba(33, 48, 78, 0.08);
+    }
+
+    .bubble.user {
+      background: #e8f1ff;
+      border: 1px solid #d9e7ff;
+      color: #18233a;
+      box-shadow: 0 4px 12px rgba(55, 104, 255, 0.08);
+    }
+
+    .message-time {
+      display: block;
+      margin-top: 6px;
+      color: #7c8aa2;
+      font-size: 14px;
+      text-align: left;
+    }
+
+    .message-row.user .message-time {
+      text-align: right;
+      padding-right: 4px;
+    }
+
+    .composer {
+      position: relative;
+      margin: 0 28px 14px;
+      border: 1.5px solid #3468ff;
+      border-radius: 14px;
+      background: #fff;
+      box-shadow: 0 8px 22px rgba(47, 98, 243, 0.12);
+      overflow: hidden;
+    }
+
+    .composer textarea {
+      display: block;
+      width: 100%;
+      min-height: 38px;
+      max-height: 100px;
+      border: 0;
+      border-radius: 0;
+      resize: none;
+      padding: 13px 22px 0;
+      color: #1f293d;
+      background: transparent;
+      outline: none;
+      font-size: 16px;
+      line-height: 1.5;
+      padding-right: 88px;
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .composer textarea::placeholder {
+      color: #8c98ab;
+    }
+
+    .composer-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      min-height: 44px;
+      padding: 0 84px 10px 16px;
+    }
+
+    .composer-tools {
+      display: flex;
+      align-items: center;
+      min-width: 0;
+      gap: 8px;
+    }
+
+    .mode-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 34px;
+      padding: 0 14px;
+      border-radius: 999px;
+      background: #f0f4fa;
+      color: #27344a;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+
+    .send-btn {
+      position: absolute;
+      right: 16px;
+      bottom: 14px;
+      width: 52px;
+      min-width: 52px;
+      height: 52px;
+      border-radius: 999px;
+      padding: 0;
+    }
+
+    .composer-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 96px;
+      justify-content: flex-end;
+      color: #758096;
+      font-size: 13px;
+    }
+
+    .detail-drawer {
+      position: fixed;
+      inset: 0;
+      display: none;
+      z-index: 10;
+    }
+
+    body.drawer-open .detail-drawer {
+      display: block;
+    }
+
+    .drawer-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 27, 43, 0.22);
+      backdrop-filter: blur(2px);
+    }
+
+    .drawer-panel {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      display: grid;
+      grid-template-rows: auto auto minmax(0, 1fr);
+      width: min(640px, calc(100vw - 32px));
+      padding: 18px;
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #d7e1ef;
+      border-radius: var(--radius);
+      box-shadow: 0 26px 70px rgba(17, 31, 56, 0.22);
+      overflow: hidden;
+    }
+
+    .wechat-modal {
+      position: fixed;
+      inset: 0;
+      z-index: 24;
+      display: none;
+    }
+
+    body.wechat-modal-open .wechat-modal {
+      display: block;
+    }
+
+    .wechat-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 27, 43, 0.32);
+      backdrop-filter: blur(2px);
+    }
+
+    .wechat-panel {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      display: grid;
+      gap: 16px;
+      width: min(680px, calc(100vw - 32px));
+      max-height: min(760px, calc(100vh - 32px));
+      padding: 20px;
+      transform: translate(-50%, -50%);
+      background: rgba(255, 255, 255, 0.98);
+      border: 1px solid #d7e1ef;
+      border-radius: var(--radius);
+      box-shadow: 0 26px 70px rgba(17, 31, 56, 0.24);
+      overflow: hidden;
+    }
+
+    .wechat-modal-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .wechat-modal-title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+
+    .wechat-modal-title h2 {
+      margin: 0;
+      color: #172033;
+      font-size: 22px;
+      line-height: 1.2;
+    }
+
+    .wechat-modal-title p {
+      margin: 4px 0 0;
+      color: #6f7b91;
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    .wechat-status-card {
+      display: grid;
+      gap: 12px;
+      padding: 14px;
+      background: #f8fbff;
+      border: 1px solid #dfe8f4;
+      border-radius: var(--radius);
+    }
+
+    .wechat-status-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      color: #26344c;
+      font-size: 14px;
+    }
+
+    .wechat-status-line strong {
+      color: #172033;
+    }
+
+    .wechat-log {
+      min-height: 260px;
+      max-height: 360px;
+      margin: 0;
+      padding: 14px;
+      overflow: auto;
+      color: #142035;
+      background: #f4f8fe;
+      border: 1px solid #dce6f4;
+      border-radius: var(--radius);
+      font-family: "Cascadia Mono", Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.28;
+      white-space: pre-wrap;
+    }
+
+    .wechat-qr {
+      display: none;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 14px;
+      padding: 14px;
+      background: #ffffff;
+      border: 1px solid #dce6f4;
+      border-radius: var(--radius);
+    }
+
+    .wechat-qr.visible {
+      display: grid;
+    }
+
+    .wechat-qr img {
+      width: 156px;
+      height: 156px;
+      padding: 8px;
+      background: #fff;
+      border: 1px solid #e1e8f2;
+      border-radius: 8px;
+    }
+
+    .wechat-qr strong {
+      display: block;
+      color: #172033;
+      font-size: 15px;
+      margin-bottom: 6px;
+    }
+
+    .wechat-qr p {
+      margin: 0 0 10px;
+      color: #6f7b91;
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .wechat-modal-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .wechat-modal-actions button {
+      min-height: 42px;
+    }
+
+    .drawer-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .drawer-head h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .drawer-tabs {
+      display: flex;
+      gap: 8px;
+      padding-bottom: 14px;
+      overflow-x: auto;
+      border-bottom: 1px solid #e4ebf5;
+    }
+
+    .drawer-tab {
+      min-height: 34px;
+      padding: 0 14px;
+      background: #f3f7fc;
+      color: #5f6b7d;
+      border: 1px solid #e0e7f1;
+      box-shadow: none;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+
+    .drawer-tab.active {
+      color: #1f4fd1;
+      background: #eaf2ff;
+      border-color: #cbdcff;
+    }
+
+    .drawer-scroll {
+      min-height: 0;
+      overflow: auto;
+      padding: 16px 2px 0 0;
+      scrollbar-width: thin;
+    }
+
+    .detail-section {
+      display: none;
+    }
+
+    .detail-section.active {
+      display: block;
+    }
+
+    .detail-block {
+      padding: 16px;
+      margin-bottom: 14px;
+      background: #fbfdff;
+      border: 1px solid #e1e9f4;
+      border-radius: var(--radius);
+    }
+
+    .detail-block h2,
+    .detail-block h3 {
+      margin: 0 0 12px;
+      font-size: 15px;
+    }
+
+    .detail-block .field {
+      margin-bottom: 12px;
+    }
+
+    .detail-block textarea {
+      min-height: 100px;
+    }
+
+    .detail-block pre {
+      max-height: 260px;
+      min-height: 82px;
+      background: #f6f9fe;
+    }
+
+    .route-box,
+    .platform-card {
+      border-color: #e0e8f3;
+      background: #ffffff;
+      box-shadow: none;
+    }
+
+    .platform-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    @media (max-width: 1180px) {
+      .topbar {
+        padding: 0 18px;
+      }
+
+      .brand-name span,
+      .topbar .settings-action span,
+      .topbar .top-action span {
+        display: none;
+      }
+
+      .top-action,
+      .settings-action {
+        min-width: 54px;
+        width: 54px;
+        padding: 0;
+      }
+
+      .workspace {
+        grid-template-columns: 300px minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 860px) {
+      html,
+      body {
+        overflow: auto;
+      }
+
+      .app-frame {
+        grid-template-rows: auto auto;
+      }
+
+      .topbar {
+        min-height: 74px;
+        height: auto;
+        flex-wrap: wrap;
+        padding: 12px 16px;
+      }
+
+      .brand-name strong {
+        font-size: 24px;
+      }
+
+      .topbar-actions {
+        width: 100%;
+        justify-content: space-between;
+        gap: 8px;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+        height: auto;
+        padding: 12px;
+      }
+
+      .sidebar {
+        max-height: 360px;
+      }
+
+      .chat-panel {
+        min-height: 680px;
+      }
+
+      .chat-header,
+      .chat-stream {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+
+      .task-queue-shell {
+        margin-left: 14px;
+        margin-right: 14px;
+      }
+
+      .task-queue-details {
+        grid-template-columns: 1fr;
+        max-height: 230px;
+      }
+
+      .task-queue-shell.is-visible {
+        max-height: 410px;
+      }
+
+      .task-queue-items {
+        border-left: 0;
+        padding-left: 0;
+      }
+
+      .chat-tools .tool-action span {
+        display: none;
+      }
+
+      .composer {
+        margin: 0 14px 12px;
+      }
+
+      .message-row,
+      .message-row.user {
+        grid-template-columns: 42px minmax(0, 1fr) 42px;
+        gap: 10px;
+      }
+
+      .message-avatar {
+        width: 42px;
+        height: 42px;
+      }
+
+      .bubble {
+        font-size: 15px;
+        padding: 14px 16px;
+      }
+
+      .platform-grid,
+      .two {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 560px) {
+      .brand-name span,
+      .user-chip strong,
+      .topbar-divider,
+      .help-action {
+        display: none;
+      }
+
+      .sidebar-actions {
+        grid-template-columns: 1fr 48px;
+      }
+
+      .composer-footer {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .task-queue-head,
+      .task-queue-progress {
+        grid-template-columns: 1fr;
+      }
+
+      .task-queue-meta,
+      .task-queue-progress-number {
+        justify-content: flex-start;
+      }
+
+      .task-stage-list {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        padding-bottom: 2px;
+      }
+
+      .composer-status {
+        justify-content: flex-start;
+      }
+
+      .send-btn {
+        right: 18px;
+        bottom: 18px;
+      }
+
+      .composer {
+        position: relative;
+        padding-bottom: 8px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-frame">
+    <header class="topbar">
+      <div class="brand" aria-label="AntTrail 蚁迹">
+        <img class="brand-logo" src="/ui/minimal_chat/assets/anttrail-mark.png" alt="AntTrail 蚁迹" />
+        <div class="brand-name">
+          <strong>AntTrail</strong>
+          <span>蚁迹</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button class="secondary-btn top-action wechat-action" id="wechatBridgeBtn" type="button" title="微信桥">
+          <img class="wechat-icon" src="https://cdn.simpleicons.org/wechat/07C160" alt="" />
+          <span>微信桥</span>
+        </button>
+        <button class="primary-btn top-action" id="openDatabaseBtn" type="button" data-database-url="http://127.0.0.1:5173/">
+          <i data-lucide="database"></i>
+          <span>进入数据库</span>
+        </button>
+        <button class="secondary-btn settings-action" type="button" data-open-drawer data-section="config">
+          <i data-lucide="settings"></i>
+          <span>设置</span>
+        </button>
+        <button class="icon-only help-action" type="button" title="帮助" aria-label="帮助" data-open-drawer data-section="route">
+          <i data-lucide="circle-help"></i>
+        </button>
+        <span class="topbar-divider"></span>
+        <div class="user-chip">
+          <img class="avatar" src="/ui/minimal_chat/assets/user-avatar.png" alt="用户头像" />
+        </div>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="sidebar" aria-label="对话侧边栏">
+        <div class="sidebar-actions">
+          <button class="primary-btn new-chat-btn" id="newChatBtn" type="button" title="新建对话">
+            <i data-lucide="circle-plus"></i>
+            <span>新建对话</span>
+          </button>
+          <button class="icon-btn" type="button" title="导入内容" data-open-drawer data-section="manual">
+            <i data-lucide="copy-plus"></i>
+          </button>
+        </div>
+
+        <div class="conversation-toolbar">
+          <h2><i data-lucide="clock-3"></i><span>对话记录</span></h2>
+          <button class="icon-only" type="button" title="控制台" data-open-drawer data-section="route">
+            <i data-lucide="search"></i>
+          </button>
+        </div>
+
+        <nav class="conversation-list" aria-label="历史对话">
+          <div class="conversation-item active">
+            <i data-lucide="messages-square"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">如何构建高效的知识库？</span>
+              <span class="conversation-date">今天</span>
+            </span>
+            <span class="conversation-time">10:24</span>
+          </div>
+          <div class="conversation-item">
+            <i data-lucide="message-square-text"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">企业知识库建设流程</span>
+            </span>
+            <span class="conversation-time">昨天</span>
+          </div>
+          <div class="conversation-item">
+            <i data-lucide="message-square-text"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">知识库权限管理方案</span>
+            </span>
+            <span class="conversation-time">昨天</span>
+          </div>
+          <div class="conversation-item">
+            <i data-lucide="message-square-text"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">RAG 技术原理简述</span>
+            </span>
+            <span class="conversation-time">05-20</span>
+          </div>
+          <div class="conversation-item">
+            <i data-lucide="message-square-text"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">如何提升问答准确率？</span>
+            </span>
+            <span class="conversation-time">05-19</span>
+          </div>
+          <div class="conversation-item">
+            <i data-lucide="message-square-text"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">知识库与大模型的关系</span>
+            </span>
+            <span class="conversation-time">05-18</span>
+          </div>
+          <div class="conversation-item">
+            <i data-lucide="message-square-text"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">数据清洗最佳实践</span>
+            </span>
+            <span class="conversation-time">05-17</span>
+          </div>
+          <div class="conversation-item">
+            <i data-lucide="message-square-text"></i>
+            <span class="conversation-text">
+              <span class="conversation-title">知识库使用培训大纲</span>
+            </span>
+            <span class="conversation-time">05-16</span>
+          </div>
+        </nav>
+
+        <button class="clear-history-btn" id="clearHistoryBtn" type="button">
+          <i data-lucide="trash-2"></i>
+          <span>清空对话记录</span>
+        </button>
+      </aside>
+
+      <section class="chat-panel" aria-label="知识库对话">
+        <div class="chat-header">
+          <div class="chat-title">
+            <h1 id="chatTitle">如何构建高效的知识库？</h1>
+            <button class="icon-only" type="button" title="切换对话">
+              <i data-lucide="chevron-down"></i>
+            </button>
+          </div>
+          <div class="chat-tools">
+            <button class="tool-action" id="shareConversationBtn" type="button">
+              <i data-lucide="share-2"></i>
+              <span>分享</span>
+            </button>
+            <span class="chat-divider"></span>
+            <button class="tool-action" id="exportConversationBtn" type="button">
+              <i data-lucide="upload"></i>
+              <span>导出</span>
+            </button>
+            <span class="chat-divider"></span>
+            <button class="tool-action" id="clearConversationBtn" type="button">
+              <i data-lucide="trash-2"></i>
+              <span>清空</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-body">
+          <div class="chat-stream" id="chatStream">
+            <div class="message-row user">
+              <div class="message-content">
+                <div class="bubble user">如何构建一个高效的企业知识库？有哪些关键步骤？</div>
+                <span class="message-time">10:24</span>
+              </div>
+              <div class="message-avatar">
+                <img src="/ui/minimal_chat/assets/user-avatar.png" alt="用户头像" />
+              </div>
+            </div>
+
+            <div class="message-row assistant">
+              <div class="message-avatar assistant-avatar">
+                <img src="/ui/minimal_chat/assets/anttrail-mark.png" alt="AntTrail 助手" />
+              </div>
+              <div class="message-content">
+                <div class="bubble assistant">
+                  <p>构建高效的企业知识库通常包括以下关键步骤：</p>
+                  <ol>
+                    <li>明确目标与范围：确定知识库的使用场景、目标用户及覆盖范围。</li>
+                    <li>知识收集与整理：从多渠道收集知识，进行分类、去重和结构化处理。</li>
+                    <li>知识存储与管理：选择合适的存储方案，建立清晰的知识体系与标签。</li>
+                    <li>检索与应用优化：优化搜索与推荐机制，结合大模型提升问答效果。</li>
+                    <li>持续更新与评估：建立更新机制，定期评估知识质量与使用效果。</li>
+                  </ol>
+                  <p>如果需要针对某个环节展开，可以告诉我详细需求。</p>
+                </div>
+                <span class="message-time">10:24</span>
+              </div>
+            </div>
+
+            <div class="message-row user">
+              <div class="message-content">
+                <div class="bubble user">在知识收集与整理阶段，有哪些常见的挑战，如何解决？</div>
+                <span class="message-time">10:26</span>
+              </div>
+              <div class="message-avatar">
+                <img src="/ui/minimal_chat/assets/user-avatar.png" alt="用户头像" />
+              </div>
+            </div>
+
+            <div class="message-row assistant">
+              <div class="message-avatar assistant-avatar">
+                <img src="/ui/minimal_chat/assets/anttrail-mark.png" alt="AntTrail 助手" />
+              </div>
+              <div class="message-content">
+                <div class="bubble assistant">
+                  <p>在知识收集与整理阶段，常见挑战及解决方案如下：</p>
+                  <ul>
+                    <li>知识来源分散：使用统一模板和采集工具，建立标准化流程。</li>
+                    <li>内容质量不一：制定质量标准，结合人工审核与自动化校验。</li>
+                    <li>结构不统一：采用分类体系与标签体系，进行结构化整理。</li>
+                    <li>更新不及时：建立知识更新机制与责任人，定期维护。</li>
+                  </ul>
+                  <p>需要详细的方法或工具推荐，我可以继续补充。</p>
+                </div>
+                <span class="message-time">10:27</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="task-queue-shell" id="taskQueueShell" aria-hidden="true">
+            <section class="task-queue-panel is-idle" id="taskQueuePanel" aria-label="任务队列">
+              <div class="task-queue-head">
+                <button class="task-queue-title-btn" id="taskQueueExpandBtn" type="button" aria-expanded="true">
+                  <span class="task-queue-title">
+                    <strong>项目进度</strong>
+                    <span id="taskQueueSubtitle">批量处理队列</span>
+                  </span>
+                  <i class="task-queue-chevron" data-lucide="chevron-up"></i>
+                </button>
+                <div class="task-queue-meta">
+                  <span id="taskQueueCount">当前队列 0 / 0</span>
+                  <span class="task-queue-state idle" id="taskQueueState">待命</span>
+                  <button class="icon-only task-queue-hide" id="taskQueueHideBtn" type="button" title="隐藏任务队列" aria-label="隐藏任务队列">
+                    <i data-lucide="x"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="task-queue-progress">
+                <div>
+                  <div class="task-queue-progress-label">
+                    <strong id="taskQueueMainLabel">暂无任务</strong>
+                    <span id="taskQueueProgressText">等待新的处理任务</span>
+                  </div>
+                  <div class="task-queue-progress-bar" aria-hidden="true">
+                    <div class="task-queue-progress-fill" id="taskQueueProgressFill"></div>
+                  </div>
+                </div>
+                <span class="task-queue-progress-number" id="taskQueueProgressNumber">0%</span>
+              </div>
+              <div class="task-queue-details" id="taskQueueDetails">
+                <div class="task-stage-list" id="taskStageList"></div>
+                <ul class="task-queue-items" id="taskQueueItems"></ul>
+              </div>
+            </section>
+          </div>
+
+          <form class="composer" id="composerForm">
+            <textarea id="message" placeholder="请输入你的问题，Enter 发送，Shift + Enter 换行"></textarea>
+            <div class="composer-footer">
+              <div class="composer-tools">
+                <button class="icon-only" id="fileUploadBtn" type="button" title="上传文件" aria-label="上传文件">
+                  <i data-lucide="paperclip"></i>
+                </button>
+                <button class="icon-only" id="imageUploadBtn" type="button" title="上传图片" aria-label="上传图片">
+                  <i data-lucide="image"></i>
+                </button>
+                <button class="queue-toggle-btn is-empty" id="taskQueueToggleBtn" type="button" title="显示任务队列" aria-label="显示任务队列" aria-pressed="false">
+                  <i data-lucide="list-checks"></i>
+                  <span>队列</span>
+                  <span class="queue-toggle-count" id="taskQueueButtonCount">0</span>
+                </button>
+              </div>
+              <div class="composer-tools">
+                <div class="composer-status" id="statusLine"><span class="dot"></span><span id="statusText">等待发送</span></div>
+                <button class="primary-btn send-btn" id="sendBtn" type="button" title="发送" aria-label="发送">
+                  <i data-lucide="send"></i>
+                </button>
+              </div>
+            </div>
+            <input class="sr-only" id="fileUpload" type="file" />
+            <input class="sr-only" id="imageUpload" type="file" accept="image/*" />
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="wechat-modal" id="wechatBridgeModal" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="wechatBridgeTitle">
+    <div class="wechat-backdrop" data-close-wechat-bridge></div>
+    <section class="wechat-panel" aria-label="微信桥配置">
+      <div class="wechat-modal-head">
+        <div class="wechat-modal-title">
+          <img class="wechat-icon" src="https://cdn.simpleicons.org/wechat/07C160" alt="" />
+          <div>
+            <h2 id="wechatBridgeTitle">微信链接入库桥</h2>
+            <p>连接微信到 Lucas Chat Gateway：链接自动入库，普通消息进入数据库问答。</p>
+          </div>
+        </div>
+        <button class="icon-only" type="button" title="关闭" aria-label="关闭" data-close-wechat-bridge>
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="wechat-status-card">
+        <div class="wechat-status-line">
+          <span class="status"><span class="dot" id="wechatBridgeDot"></span><span id="wechatBridgeState">未读取状态</span></span>
+          <strong id="wechatBridgePid">PID -</strong>
+        </div>
+        <div class="wechat-status-line">
+          <span id="wechatBridgePath">入口：等待读取</span>
+          <span id="wechatBridgeAdapter">能力：链接入库 + 数据库问答</span>
+        </div>
+        <p class="hint" id="wechatBridgeHint">扫码后要保持本地 3963 服务和微信桥进程开启；已有登录态时会直接运行，不会重复扫码。</p>
+      </div>
+      <div class="wechat-qr" id="wechatBridgeQrBox" aria-live="polite">
+        <img id="wechatBridgeQrImage" alt="微信登录二维码" />
+        <div>
+          <strong>扫码登录微信桥</strong>
+          <p>用微信扫描二维码并在手机上确认。二维码过期后再次点击“重新扫码登录”。</p>
+          <button class="secondary" id="openWechatQrBtn" type="button">打开二维码链接</button>
+        </div>
+      </div>
+      <pre class="wechat-log" id="wechatBridgeLog">点击“启动微信桥”后，这里会显示真实 bridge 输出；如果需要扫码，二维码会出现在这里。</pre>
+      <div class="wechat-modal-actions">
+        <button class="primary-btn" id="startWechatBridgeBtn" type="button">
+          <img class="wechat-icon" src="https://cdn.simpleicons.org/wechat/ffffff" alt="" />
+          <span>启动微信桥</span>
+        </button>
+        <button class="secondary" id="rescanWechatBridgeBtn" type="button">重新扫码登录</button>
+        <button class="secondary" id="refreshWechatBridgeBtn" type="button">刷新状态</button>
+        <button class="secondary" id="stopWechatBridgeBtn" type="button">停止桥</button>
+        <button class="ghost-btn" type="button" data-close-wechat-bridge>关闭</button>
+      </div>
+    </section>
+  </div>
+
+  <aside class="detail-drawer" id="detailDrawer" aria-hidden="true">
+    <div class="drawer-backdrop" data-close-drawer></div>
+    <section class="drawer-panel" aria-label="设置与调试">
+      <div class="drawer-head">
+        <h2>知识库控制台</h2>
+        <button class="icon-only" type="button" title="关闭" aria-label="关闭" data-close-drawer>
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <div class="drawer-tabs" role="tablist" aria-label="控制台分类">
+        <button class="drawer-tab active" type="button" data-detail-tab="route">路由授权</button>
+        <button class="drawer-tab" type="button" data-detail-tab="config">模型配置</button>
+        <button class="drawer-tab" type="button" data-detail-tab="agent">Agent配置</button>
+        <button class="drawer-tab" type="button" data-detail-tab="storage">存储配置</button>
+        <button class="drawer-tab" type="button" data-detail-tab="cache">清除缓存</button>
+        <button class="drawer-tab" type="button" data-detail-tab="manual">手动入库</button>
+      </div>
+
+      <div class="drawer-scroll">
+        <section class="detail-section active" data-detail-section="route">
+          <div class="detail-block">
+            <div class="route-title">
+              <h2 style="margin: 0;">链接路由与授权</h2>
+              <button class="secondary" id="refreshPlatformsBtn" type="button"><i data-lucide="refresh-cw"></i>刷新状态</button>
+            </div>
+            <div class="route-box">
+              <div class="route-title">
+                <strong id="routePlatform">当前消息：待识别</strong>
+                <span class="badge" id="routeBadge">未分类</span>
+              </div>
+              <div class="platform-meta" id="routeStrategy">粘贴链接后会显示：视频、文章、混合笔记或普通网页路线；平台只作为授权上下文。</div>
+            </div>
+            <div class="platform-grid" id="platformGrid"></div>
+            <p class="hint">授权按钮只会打开本机独立浏览器 profile，不导出 cookie，也不会把账号信息写入 job 或知识卡。</p>
+          </div>
+          <div class="detail-block">
+            <h3>API 地址</h3>
+            <label class="sr-only" for="apiUrl">API 地址</label>
+            <input id="apiUrl" value="http://127.0.0.1:3963/api/chat/messages" />
+          </div>
+        </section>
+
+        <section class="detail-section" data-detail-section="config">
+          <div class="detail-block">
+            <h2>模型配置</h2>
+            <div class="field">
+              <label for="configApiUrl">配置接口地址</label>
+              <input id="configApiUrl" value="/api/ai/config" readonly />
+              <p class="hint">这里是本地后端的配置接口地址，不是配置名称；正常保持默认。</p>
+            </div>
+            <div class="two">
+              <div class="field">
+                <label for="providerSelect">模型提供商</label>
+                <select id="providerSelect"></select>
+              </div>
+              <div class="field">
+                <label for="modelName">模型名</label>
+                <input id="modelName" list="modelOptions" placeholder="deepseek-chat" />
+                <datalist id="modelOptions"></datalist>
+              </div>
+            </div>
+            <div class="field">
+              <label for="baseUrl">Base URL</label>
+              <input id="baseUrl" placeholder="https://api.deepseek.com" />
+            </div>
+            <div class="field">
+              <label for="apiKey">API Key</label>
+              <input id="apiKey" type="password" autocomplete="off" placeholder="留空则保留已有 key 或读取环境变量" />
+            </div>
+            <div class="row">
+              <button id="saveConfigBtn" type="button">保存配置</button>
+              <button class="secondary" id="loadModelsBtn" type="button">获取模型列表</button>
+              <button class="secondary" id="testConfigBtn" type="button">测试连接</button>
+              <button class="secondary" id="reloadConfigBtn" type="button">重新读取</button>
+              <div class="status" id="configStatusLine"><span class="dot"></span><span id="configStatusText">未读取配置</span></div>
+            </div>
+            <p class="hint" id="providerNote">选择提供商后会自动填入默认 URL 和模型名，可改为你的中转站地址。</p>
+            <div class="row">
+              <span class="pill" id="keyState">key: unknown</span>
+              <span class="pill" id="visionState">vision: unknown</span>
+              <span class="pill" id="protocolState">protocol: unknown</span>
+            </div>
+            <pre id="configTestJson">{}</pre>
+          </div>
+        </section>
+
+        <section class="detail-section" data-detail-section="agent">
+          <div class="detail-block">
+            <h2>Agent 配置</h2>
+            <div class="two">
+              <div class="field">
+                <label for="agentDisplayName">你的称呼</label>
+                <input id="agentDisplayName" placeholder="AntTrail 助手" />
+              </div>
+              <div class="field">
+                <label for="agentTemperature">温度</label>
+                <input id="agentTemperature" type="number" min="0" max="2" step="0.1" placeholder="0.2" />
+              </div>
+            </div>
+            <div class="field">
+              <label for="agentSystemPrompt">Agent 提示词</label>
+              <textarea id="agentSystemPrompt" placeholder="给这个聊天 agent 的长期风格、边界或工作偏好。不会写入知识卡，只会随普通聊天请求发送。"></textarea>
+            </div>
+            <div class="row">
+              <button id="saveAgentConfigBtn" type="button">保存 Agent 配置</button>
+              <button class="secondary" id="resetAgentConfigBtn" type="button">恢复默认</button>
+              <div class="status" id="agentStatusLine"><span class="dot"></span><span id="agentStatusText">本地配置未读取</span></div>
+            </div>
+            <p class="hint">这些偏好只保存在当前浏览器，不写入模型配置文件、存储配置或知识卡。</p>
+          </div>
+        </section>
+
+        <section class="detail-section" data-detail-section="storage">
+          <div class="detail-block">
+            <h2>存储配置</h2>
+            <div class="two">
+              <div class="field">
+                <label for="storageProviderSelect">存储提供商</label>
+                <select id="storageProviderSelect"></select>
+              </div>
+              <div class="field">
+                <label for="storageBaseUrl">Base URL</label>
+                <input id="storageBaseUrl" placeholder="http://127.0.0.1:8765" />
+              </div>
+            </div>
+            <div class="two">
+              <div class="field">
+                <label for="storageProviderEndpoint">Endpoint</label>
+                <input id="storageProviderEndpoint" placeholder="/api/cards/ingest" />
+              </div>
+              <div class="field">
+                <label for="storageApiKey">API Key / Token</label>
+                <input id="storageApiKey" type="password" autocomplete="off" placeholder="留空则保留 .env 中已有 key" />
+              </div>
+            </div>
+            <div class="row">
+              <button id="saveStorageBtn" type="button">保存存储配置</button>
+              <button class="secondary" id="testStorageBtn" type="button">测试连接</button>
+              <button class="secondary" id="reloadStorageBtn" type="button">重新读取</button>
+              <div class="status" id="storageStatusLine"><span class="dot"></span><span id="storageStatusText">未读取配置</span></div>
+            </div>
+            <div class="row">
+              <span class="pill" id="storageKeyState">key: unknown</span>
+              <span class="pill" id="storageEndpointState">endpoint: unknown</span>
+            </div>
+            <p class="hint" id="storageNote">真实链接流程会先生成 ComposedCardV1，再写入 AntTrail Database。</p>
+            <pre id="storageTestJson">{}</pre>
+          </div>
+
+          <div class="detail-block">
+            <h2>自动入库</h2>
+            <div class="row">
+              <label><input id="autoIngestToggle" type="checkbox" checked />开启后按下方目标写入</label>
+            </div>
+            <p class="hint">关闭后只处理并保留本地 job，不写入 AntTrail Database。</p>
+            <div class="storage-target-grid">
+              <div class="storage-target-card legacy-target">
+                <input id="targetSiyuan" type="checkbox" />
+                <label for="targetSiyuan">
+                  <strong>写入 SiYuan</strong>
+                  <span>历史兼容目标；默认不启用。</span>
+                  <span id="targetSiyuanStatus">状态：未读取</span>
+                </label>
+                <div class="storage-target-actions">
+                  <button class="mini-btn secondary" id="testSiyuanStorageBtn" type="button">测试连接</button>
+                </div>
+              </div>
+              <div class="storage-target-card">
+                <input id="targetBrain" type="checkbox" />
+                <label for="targetBrain">
+                  <strong>写入 AntTrail Database</strong>
+                  <span>结构化知识卡，默认写入目标。</span>
+                  <span id="targetBrainStatus">状态：未读取</span>
+                </label>
+                <div class="storage-target-actions">
+                  <button class="mini-btn secondary" id="testBrainStorageBtn" type="button">测试连接</button>
+                </div>
+              </div>
+            </div>
+            <div class="database-target-toolbar">
+              <div class="database-target-title">
+                <strong>AntTrail Database 目标</strong>
+                <span>可配置一个或多个 AntTrail API 目标；勾选项会随“写入 AntTrail Database”一起进入真实入库路由。</span>
+              </div>
+              <button class="secondary" id="addDatabaseTargetBtn" type="button">添加数据库</button>
+            </div>
+            <div class="database-target-list" id="databaseTargetList"></div>
+          </div>
+        </section>
+
+        <section class="detail-section" data-detail-section="cache">
+          <div class="detail-block">
+            <h2>清除缓存</h2>
+            <p class="hint">清理本机 TEMP 下的 Lucas 图片、视频、音频、转写、OCR 和评论采集临时文件，不会删除项目文件、模型文件、工具目录或已入库内容。</p>
+            <div class="field">
+              <label for="cacheOlderThanHours">只清理多少小时前的缓存</label>
+              <input id="cacheOlderThanHours" type="number" min="0" step="1" value="0" />
+              <p class="hint">填 0 表示清理全部 Lucas 媒体临时缓存。</p>
+            </div>
+            <div class="row">
+              <button class="secondary" id="previewCacheClearBtn" type="button">预览缓存</button>
+              <button id="clearCacheBtn" type="button">清除缓存</button>
+              <div class="status" id="cacheStatusLine"><span class="dot"></span><span id="cacheStatusText">等待操作</span></div>
+            </div>
+            <pre id="cacheResultJson">{}</pre>
+          </div>
+        </section>
+
+        <section class="detail-section" data-detail-section="manual">
+          <div class="detail-block">
+            <h2>手动文本卡片测试</h2>
+            <p class="hint">这个入口只用于手动文本和 AntTrail Database API 连通性测试，不代表网页 / 视频主链路。</p>
+            <div class="field">
+              <label for="submitApiUrl">提交接口地址</label>
+              <input id="submitApiUrl" value="http://127.0.0.1:3963/api/submit" readonly />
+            </div>
+            <div class="field">
+              <label for="submitTitle">标题</label>
+              <input id="submitTitle" placeholder="这条知识卡的标题" />
+            </div>
+            <div class="field">
+              <label for="submitContent">内容</label>
+              <textarea id="submitContent" placeholder="粘贴或输入要入库的表单内容"></textarea>
+            </div>
+            <div class="two">
+              <div class="field">
+                <label for="submitTags">标签</label>
+                <input id="submitTags" placeholder="手动文本;想法;项目" />
+              </div>
+              <div class="field">
+                <label for="submitSourceUrl">来源 URL</label>
+                <input id="submitSourceUrl" placeholder="可选" />
+              </div>
+            </div>
+            <div class="row">
+              <button id="submitFormBtn" type="button">测试写入 AntTrail</button>
+              <div class="status" id="submitStatusLine"><span class="dot"></span><span id="submitStatusText">等待测试</span></div>
+            </div>
+            <pre id="submitResultJson">{}</pre>
+          </div>
+        </section>
+      </div>
+    </section>
+  </aside>
+
+  <script src="https://unpkg.com/lucide@0.468.0/dist/umd/lucide.min.js"></script>
+  <script>
+    const apiUrl = document.getElementById('apiUrl');
+    const message = document.getElementById('message');
+    const sendBtn = document.getElementById('sendBtn');
+    const requestJson = document.getElementById('requestJson');
+    const responseJson = document.getElementById('responseJson');
+    const statusText = document.getElementById('statusText');
+    const statusLine = document.getElementById('statusLine');
+    const dot = statusLine.querySelector('.dot');
+    const openDatabaseBtn = document.getElementById('openDatabaseBtn');
+    const wechatBridgeBtn = document.getElementById('wechatBridgeBtn');
+    const wechatBridgeModal = document.getElementById('wechatBridgeModal');
+    const wechatBridgeDot = document.getElementById('wechatBridgeDot');
+    const wechatBridgeState = document.getElementById('wechatBridgeState');
+    const wechatBridgePid = document.getElementById('wechatBridgePid');
+    const wechatBridgePath = document.getElementById('wechatBridgePath');
+    const wechatBridgeAdapter = document.getElementById('wechatBridgeAdapter');
+    const wechatBridgeHint = document.getElementById('wechatBridgeHint');
+    const wechatBridgeLog = document.getElementById('wechatBridgeLog');
+    const wechatBridgeQrBox = document.getElementById('wechatBridgeQrBox');
+    const wechatBridgeQrImage = document.getElementById('wechatBridgeQrImage');
+    const openWechatQrBtn = document.getElementById('openWechatQrBtn');
+    const startWechatBridgeBtn = document.getElementById('startWechatBridgeBtn');
+    const rescanWechatBridgeBtn = document.getElementById('rescanWechatBridgeBtn');
+    const refreshWechatBridgeBtn = document.getElementById('refreshWechatBridgeBtn');
+    const stopWechatBridgeBtn = document.getElementById('stopWechatBridgeBtn');
+
+    const configApiUrl = document.getElementById('configApiUrl');
+    const providerSelect = document.getElementById('providerSelect');
+    const baseUrl = document.getElementById('baseUrl');
+    const modelName = document.getElementById('modelName');
+    const modelOptions = document.getElementById('modelOptions');
+    const apiKey = document.getElementById('apiKey');
+    const saveConfigBtn = document.getElementById('saveConfigBtn');
+    const loadModelsBtn = document.getElementById('loadModelsBtn');
+    const testConfigBtn = document.getElementById('testConfigBtn');
+    const reloadConfigBtn = document.getElementById('reloadConfigBtn');
+    const configStatusLine = document.getElementById('configStatusLine');
+    const configStatusText = document.getElementById('configStatusText');
+    const configDot = configStatusLine.querySelector('.dot');
+    const providerNote = document.getElementById('providerNote');
+    const keyState = document.getElementById('keyState');
+    const visionState = document.getElementById('visionState');
+    const protocolState = document.getElementById('protocolState');
+    const configTestJson = document.getElementById('configTestJson');
+    const storageProviderSelect = document.getElementById('storageProviderSelect');
+    const storageBaseUrl = document.getElementById('storageBaseUrl');
+    const storageProviderEndpoint = document.getElementById('storageProviderEndpoint');
+    const storageApiKey = document.getElementById('storageApiKey');
+    const saveStorageBtn = document.getElementById('saveStorageBtn');
+    const testStorageBtn = document.getElementById('testStorageBtn');
+    const reloadStorageBtn = document.getElementById('reloadStorageBtn');
+    const storageStatusLine = document.getElementById('storageStatusLine');
+    const storageStatusText = document.getElementById('storageStatusText');
+    const storageDot = storageStatusLine.querySelector('.dot');
+    const storageKeyState = document.getElementById('storageKeyState');
+    const storageEndpointState = document.getElementById('storageEndpointState');
+    const storageNote = document.getElementById('storageNote');
+    const storageTestJson = document.getElementById('storageTestJson');
+    const autoIngestToggle = document.getElementById('autoIngestToggle');
+    const targetSiyuan = document.getElementById('targetSiyuan');
+    const targetBrain = document.getElementById('targetBrain');
+    const targetSiyuanStatus = document.getElementById('targetSiyuanStatus');
+    const targetBrainStatus = document.getElementById('targetBrainStatus');
+    const testSiyuanStorageBtn = document.getElementById('testSiyuanStorageBtn');
+    const testBrainStorageBtn = document.getElementById('testBrainStorageBtn');
+    const addDatabaseTargetBtn = document.getElementById('addDatabaseTargetBtn');
+    const databaseTargetList = document.getElementById('databaseTargetList');
+    const agentDisplayName = document.getElementById('agentDisplayName');
+    const agentTemperature = document.getElementById('agentTemperature');
+    const agentSystemPrompt = document.getElementById('agentSystemPrompt');
+    const saveAgentConfigBtn = document.getElementById('saveAgentConfigBtn');
+    const resetAgentConfigBtn = document.getElementById('resetAgentConfigBtn');
+    const agentStatusLine = document.getElementById('agentStatusLine');
+    const agentStatusText = document.getElementById('agentStatusText');
+    const agentDot = agentStatusLine.querySelector('.dot');
+    const submitApiUrl = document.getElementById('submitApiUrl');
+    const submitTitle = document.getElementById('submitTitle');
+    const submitContent = document.getElementById('submitContent');
+    const submitTags = document.getElementById('submitTags');
+    const submitSourceUrl = document.getElementById('submitSourceUrl');
+    const submitFormBtn = document.getElementById('submitFormBtn');
+    const submitStatusLine = document.getElementById('submitStatusLine');
+    const submitStatusText = document.getElementById('submitStatusText');
+    const submitDot = submitStatusLine.querySelector('.dot');
+    const submitResultJson = document.getElementById('submitResultJson');
+    const cacheOlderThanHours = document.getElementById('cacheOlderThanHours');
+    const previewCacheClearBtn = document.getElementById('previewCacheClearBtn');
+    const clearCacheBtn = document.getElementById('clearCacheBtn');
+    const cacheStatusLine = document.getElementById('cacheStatusLine');
+    const cacheStatusText = document.getElementById('cacheStatusText');
+    const cacheDot = cacheStatusLine.querySelector('.dot');
+    const cacheResultJson = document.getElementById('cacheResultJson');
+    const refreshPlatformsBtn = document.getElementById('refreshPlatformsBtn');
+    const platformGrid = document.getElementById('platformGrid');
+    const routePlatform = document.getElementById('routePlatform');
+    const routeBadge = document.getElementById('routeBadge');
+    const routeStrategy = document.getElementById('routeStrategy');
+    const detailDrawer = document.getElementById('detailDrawer');
+    const chatStream = document.getElementById('chatStream');
+    const composerForm = document.getElementById('composerForm');
+    const conversationList = document.querySelector('.conversation-list');
+    const chatTitle = document.getElementById('chatTitle');
+    const newChatBtn = document.getElementById('newChatBtn');
+    const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+    const shareConversationBtn = document.getElementById('shareConversationBtn');
+    const exportConversationBtn = document.getElementById('exportConversationBtn');
+    const clearConversationBtn = document.getElementById('clearConversationBtn');
+    const fileUploadBtn = document.getElementById('fileUploadBtn');
+    const imageUploadBtn = document.getElementById('imageUploadBtn');
+    const fileUpload = document.getElementById('fileUpload');
+    const imageUpload = document.getElementById('imageUpload');
+    const taskQueueShell = document.getElementById('taskQueueShell');
+    const taskQueuePanel = document.getElementById('taskQueuePanel');
+    const taskQueueExpandBtn = document.getElementById('taskQueueExpandBtn');
+    const taskQueueHideBtn = document.getElementById('taskQueueHideBtn');
+    const taskQueueToggleBtn = document.getElementById('taskQueueToggleBtn');
+    const taskQueueSubtitle = document.getElementById('taskQueueSubtitle');
+    const taskQueueCount = document.getElementById('taskQueueCount');
+    const taskQueueStateBadge = document.getElementById('taskQueueState');
+    const taskQueueMainLabel = document.getElementById('taskQueueMainLabel');
+    const taskQueueProgressText = document.getElementById('taskQueueProgressText');
+    const taskQueueProgressFill = document.getElementById('taskQueueProgressFill');
+    const taskQueueProgressNumber = document.getElementById('taskQueueProgressNumber');
+    const taskStageList = document.getElementById('taskStageList');
+    const taskQueueItems = document.getElementById('taskQueueItems');
+    const taskQueueButtonCount = document.getElementById('taskQueueButtonCount');
+      const ASSISTANT_AVATAR_URL = '/ui/minimal_chat/assets/anttrail-mark.png';
+      const taskStages = ['内容抓取', '转写 / OCR', '生成知识卡', '写入数据库'];
+    let wechatBridgePollTimer = null;
+
+    const backendOrigin = window.location.protocol.startsWith('http')
+      ? window.location.origin
+      : 'http://127.0.0.1:3963';
+    apiUrl.value = `${backendOrigin}/api/chat/messages`;
+    submitApiUrl.value = `${backendOrigin}/api/submit`;
+    configApiUrl.value = `${backendOrigin}/api/ai/config`;
+
+    function renderIcons() {
+      if (window.lucide) {
+        window.lucide.createIcons();
+      }
+    }
+
+    function setDetailSection(sectionId = 'route') {
+      const sections = Array.from(document.querySelectorAll('[data-detail-section]'));
+      const nextSectionId = sections.some((section) => section.dataset.detailSection === sectionId)
+        ? sectionId
+        : 'route';
+      document.querySelectorAll('[data-detail-tab]').forEach((tab) => {
+        tab.classList.toggle('active', tab.dataset.detailTab === nextSectionId);
+      });
+      sections.forEach((section) => {
+        section.classList.toggle('active', section.dataset.detailSection === nextSectionId);
+      });
+    }
+
+    function openDrawer(sectionId = 'route') {
+      setDetailSection(sectionId);
+      detailDrawer.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('drawer-open');
+    }
+
+    function closeDrawer() {
+      detailDrawer.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('drawer-open');
+    }
+
+    function nowTime() {
+      return new Date().toLocaleTimeString('zh-CN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? '')
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function renderInlineMarkdown(value) {
+      return escapeHtml(value)
+        .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
+    }
+
+    function renderMessageMarkdown(text) {
+      const lines = String(text || '-').replace(/\r\n/g, '\n').split('\n');
+      const html = [];
+      let listType = null;
+
+      function closeList() {
+        if (listType) {
+          html.push(`</${listType}>`);
+          listType = null;
+        }
+      }
+
+      for (const rawLine of lines) {
+        const line = rawLine.trimEnd();
+        if (!line.trim()) {
+          closeList();
+          continue;
+        }
+        const heading = /^(#{1,4})\s+(.+)$/.exec(line);
+        if (heading) {
+          closeList();
+          const level = Math.min(4, heading[1].length + 1);
+          html.push(`<h${level}>${renderInlineMarkdown(heading[2].trim())}</h${level}>`);
+          continue;
+        }
+        const ordered = /^\d+\.\s+(.+)$/.exec(line.trim());
+        if (ordered) {
+          if (listType !== 'ol') {
+            closeList();
+            listType = 'ol';
+            html.push('<ol>');
+          }
+          html.push(`<li>${renderInlineMarkdown(ordered[1])}</li>`);
+          continue;
+        }
+        const unordered = /^[-*]\s+(.+)$/.exec(line.trim());
+        if (unordered) {
+          if (listType !== 'ul') {
+            closeList();
+            listType = 'ul';
+            html.push('<ul>');
+          }
+          html.push(`<li>${renderInlineMarkdown(unordered[1])}</li>`);
+          continue;
+        }
+        closeList();
+        html.push(`<p>${renderInlineMarkdown(line)}</p>`);
+      }
+      closeList();
+      return html.join('');
+    }
+
+    function clampNumber(value, min, max) {
+      return Math.min(max, Math.max(min, Number(value) || 0));
+    }
+
+    function compactText(value, maxLength = 42) {
+      const text = String(value || '').replace(/\s+/g, ' ').trim();
+      if (!text) return '未命名任务';
+      return text.length > maxLength ? `${text.slice(0, maxLength - 1)}…` : text;
+    }
+
+    function extractTaskTargets(payload) {
+      const text = String(payload?.text || '');
+      const urls = text.match(/https?:\/\/[^\s，,；;]+/g) || [];
+      if (urls.length) {
+        return urls.map((url, index) => ({
+          kind: 'url',
+          label: `链接处理 #${String(index + 1).padStart(2, '0')}`,
+          detail: url,
+        }));
+      }
+      const attachments = Array.isArray(payload?.metadata?.attachments) ? payload.metadata.attachments : [];
+      if (attachments.length) {
+        return attachments.map((file, index) => ({
+          kind: file.kind || 'file',
+          label: `${file.kind === 'image' ? '图片识别' : '文件处理'} #${String(index + 1).padStart(2, '0')}`,
+          detail: file.name || '未命名文件',
+        }));
+      }
+      if (textHasKnowledgeIntakeIntent(text)) {
+        return [{
+          kind: 'text_intake',
+          label: '文本入库',
+          detail: compactText(text, 64),
+        }];
+      }
+      return [];
+    }
+
+    function textHasKnowledgeIntakeIntent(text) {
+      const normalized = String(text || '').replace(/\s+/g, '');
+      if (!normalized) return false;
+      return /入库|写入知识库|写进知识库|存入知识库|存进知识库|保存到知识库|保存进知识库|收录到知识库|导入知识库|生成知识卡|整理成知识卡|创建知识卡|建立知识卡|写入Brain|保存到Brain|写入AntTrail|保存到AntTrail|写入思源|保存到思源/i.test(normalized);
+    }
+
+    function buildLocalQueueState(payload) {
+      const targets = extractTaskTargets(payload);
+      if (!targets.length) return null;
+      const requestId = ++taskQueueRequestSeq;
+      const localParallelLimit = targets.length > 1 ? Math.min(targets.length, 2) : 1;
+      const items = targets.map((target, index) => ({
+        index: index + 1,
+        url: target.kind === 'url' ? target.detail : '',
+        title: target.label,
+        detail: target.detail,
+        item_type: target.kind,
+        queue_status: index < localParallelLimit ? 'in_progress' : 'pending',
+        card_status: 'not_started',
+        write_status: 'not_started',
+        final_status: index < localParallelLimit ? 'in_progress' : 'pending',
+        request_id: requestId,
+      }));
+      return {
+        mode: targets.length > 1 ? 'parallel' : 'single',
+        status: 'pending',
+        total: targets.length,
+        completed: 0,
+        pending: Math.max(targets.length - localParallelLimit, 0),
+        in_progress: localParallelLimit,
+        unfinished: targets.length,
+        failed: 0,
+        card_failed: 0,
+        write_failed: 0,
+        items,
+        source: 'local',
+        batch_id: requestId,
+        created_at: Date.now(),
+      };
+    }
+
+    function emptyTaskQueueState() {
+      return {
+        mode: 'idle',
+        status: 'idle',
+        total: 0,
+        completed: 0,
+        pending: 0,
+        in_progress: 0,
+        unfinished: 0,
+        failed: 0,
+        card_failed: 0,
+        write_failed: 0,
+        items: [],
+      };
+    }
+
+    function taskQueueBatchId(state) {
+      const direct = state?.batch_id ?? state?.request_id;
+      if (direct !== undefined && direct !== null && direct !== '') return String(direct);
+      const firstItem = Array.isArray(state?.items) ? state.items[0] : null;
+      const itemId = firstItem?.request_id ?? firstItem?.batch_id;
+      return itemId !== undefined && itemId !== null && itemId !== '' ? String(itemId) : '';
+    }
+
+    function queueStatusFromCounts(counts) {
+      const total = Number(counts?.total || 0);
+      const pending = Number(counts?.pending || 0);
+      const inProgress = Number(counts?.in_progress || 0);
+      const failed = Number(counts?.failed || 0);
+      const cardFailed = Number(counts?.card_failed || 0);
+      const writeFailed = Number(counts?.write_failed || 0);
+      if (!total) return 'idle';
+      if (pending || inProgress) return 'pending';
+      if (failed) return failed === total ? 'failed' : 'partial_failed';
+      if (cardFailed) return 'completed_with_card_failures';
+      if (writeFailed) return 'completed_with_write_failures';
+      return 'completed';
+    }
+
+    function normalizeQueueCounts(queue) {
+      const items = Array.isArray(queue?.items) ? queue.items : [];
+      const total = Number(queue?.total ?? items.length) || 0;
+      const pending = Number(queue?.pending ?? items.filter((item) => item.queue_status === 'pending').length) || 0;
+      const inProgress = Number(queue?.in_progress ?? items.filter((item) => item.queue_status === 'in_progress').length) || 0;
+      const completed = Number(queue?.completed ?? items.filter((item) => item.queue_status === 'completed').length) || 0;
+      const failed = Number(queue?.failed ?? items.filter((item) => item.queue_status === 'failed').length) || 0;
+      const cardFailed = Number(queue?.card_failed ?? items.filter((item) => item.card_status === 'card_generation_failed').length) || 0;
+      const writeFailed = Number(queue?.write_failed ?? items.filter((item) => item.write_status === 'failed').length) || 0;
+      const unfinished = Number(queue?.unfinished ?? (pending + inProgress)) || 0;
+      return {
+        ...queue,
+        status: queue?.status || queueStatusFromCounts({
+          total,
+          pending,
+          in_progress: inProgress,
+          failed,
+          card_failed: cardFailed,
+          write_failed: writeFailed,
+        }),
+        total,
+        completed,
+        pending,
+        in_progress: inProgress,
+        unfinished,
+        failed,
+        card_failed: cardFailed,
+        write_failed: writeFailed,
+        items,
+      };
+    }
+
+    function normalizeQueueFromResponse(payload, fallbackState = null) {
+      const responseQueue = payload?.data?.queue;
+      if (responseQueue && Array.isArray(responseQueue.items)) {
+        const batchId = taskQueueBatchId(fallbackState) || taskQueueBatchId(responseQueue);
+        const items = responseQueue.items.map((item) => ({
+          ...item,
+          request_id: item?.request_id ?? batchId,
+        }));
+        return normalizeQueueCounts({
+          ...responseQueue,
+          items,
+          source: 'response',
+          batch_id: batchId,
+          created_at: fallbackState?.created_at || Date.now(),
+        });
+      }
+      const fallback = fallbackState && fallbackState.items?.length ? fallbackState : null;
+      if (!fallback) return null;
+      const ok = Boolean(payload?.ok);
+      const total = fallback.items.length;
+      const items = fallback.items.map((item) => ({
+        ...item,
+        queue_status: ok ? 'completed' : 'failed',
+        final_status: payload?.status || (ok ? 'completed' : 'failed'),
+        card_status: payload?.job_id ? 'unknown' : item.card_status,
+        write_status: payload?.job_id ? 'unknown' : item.write_status,
+        error: payload?.error || '',
+      }));
+      return normalizeQueueCounts({
+        ...fallback,
+        status: ok ? 'completed' : 'failed',
+        completed: ok ? total : 0,
+        pending: 0,
+        in_progress: 0,
+        unfinished: 0,
+        failed: ok ? 0 : total,
+        items,
+        source: 'response',
+        batch_id: taskQueueBatchId(fallback),
+        created_at: fallback.created_at || Date.now(),
+      });
+    }
+
+    function queueItemShouldRemain(item) {
+      return item?.queue_status !== 'completed';
+    }
+
+    function combinedTaskQueueState() {
+      const batches = Array.from(taskQueueBatches.values())
+        .map((state) => normalizeQueueCounts(state))
+        .filter((state) => state.items.length);
+      if (!batches.length) return emptyTaskQueueState();
+      const items = [];
+      let hasLocal = false;
+      for (const batch of batches) {
+        if (batch.source === 'local') hasLocal = true;
+        for (const item of batch.items.filter(queueItemShouldRemain)) {
+          items.push({
+            ...item,
+            original_index: item.index,
+            index: items.length + 1,
+          });
+        }
+      }
+      if (!items.length) return emptyTaskQueueState();
+      const counts = normalizeQueueCounts({
+        mode: batches.length > 1 || items.length > 1 ? 'parallel' : (batches[0]?.mode || 'single'),
+        total: items.length,
+        completed: items.filter((item) => item.queue_status === 'completed').length,
+        pending: items.filter((item) => item.queue_status === 'pending').length,
+        in_progress: items.filter((item) => item.queue_status === 'in_progress').length,
+        failed: items.filter((item) => item.queue_status === 'failed').length,
+        card_failed: items.filter((item) => item.card_status === 'card_generation_failed').length,
+        write_failed: items.filter((item) => item.write_status === 'failed').length,
+        items,
+        source: hasLocal ? 'local' : 'response',
+      });
+      counts.unfinished = counts.pending + counts.in_progress;
+      counts.status = queueStatusFromCounts(counts);
+      return counts;
+    }
+
+    function pruneTaskQueueBatches() {
+      for (const [id, state] of Array.from(taskQueueBatches.entries())) {
+        const normalized = normalizeQueueCounts(state);
+        if (!normalized.items.some(queueItemShouldRemain)) {
+          taskQueueBatches.delete(id);
+        }
+      }
+      const entries = Array.from(taskQueueBatches.entries())
+        .sort((a, b) => Number(a[1]?.created_at || 0) - Number(b[1]?.created_at || 0));
+      while (entries.length > 12) {
+        const [id] = entries.shift();
+        taskQueueBatches.delete(id);
+      }
+    }
+
+    function upsertTaskQueueBatch(state, { autoShow = false } = {}) {
+      if (!state?.items?.length) return;
+      const batchId = taskQueueBatchId(state) || `batch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      taskQueueBatches.set(batchId, {
+        ...state,
+        batch_id: batchId,
+        created_at: state.created_at || Date.now(),
+      });
+      pruneTaskQueueBatches();
+      setTaskQueueState(combinedTaskQueueState(), { autoShow });
+    }
+
+    function queueStateLabel(state) {
+      const status = String(state?.status || 'idle');
+      if (!state?.total) return '待命';
+      if (status === 'completed') return '已完成';
+      if (status === 'completed_with_card_failures') return '卡片待复核';
+      if (status === 'completed_with_write_failures') return '写入异常';
+      if (status === 'partial_failed') return '部分失败';
+      if (status === 'failed') return '失败';
+      if (state.in_progress) return '运行中';
+      return '排队中';
+    }
+
+    function queueStateClass(state) {
+      const status = String(state?.status || 'idle');
+      if (!state?.total) return 'idle';
+      if (status === 'failed' || status === 'partial_failed') return 'bad';
+      if (status === 'completed_with_card_failures' || status === 'completed_with_write_failures') return 'warn';
+      if (status === 'completed') return '';
+      return '';
+    }
+
+    function queueItemProgressValue(item) {
+      if (item?.queue_status === 'completed') return 100;
+      if (item?.queue_status === 'failed') return 100;
+      if (item?.queue_status === 'pending') return 0;
+      if (item?.queue_status === 'in_progress') {
+        const explicit = Number(item?.progress ?? item?.progress_percent ?? item?.percent);
+        if (Number.isFinite(explicit) && explicit > 0) {
+          return clampNumber(Math.round(explicit), 8, 96);
+        }
+        return 18;
+      }
+      return 0;
+    }
+
+    function stageIndexForQueueItem(item) {
+      const explicit = Number(item?.stage_index ?? item?.stageIndex);
+      if (Number.isFinite(explicit)) return clampNumber(explicit, -1, 4);
+      if (item?.item_type === 'note_revision') {
+        if (item?.queue_status === 'failed') return 3;
+        if (item?.queue_status === 'completed') return 3;
+        if (item?.write_status === 'pending_policy') return 1;
+        return 0;
+      }
+      if (item?.queue_status === 'completed') return 4;
+      if (item?.queue_status === 'failed') return 4;
+      if (item?.queue_status === 'pending') return -1;
+      if (item?.queue_status === 'in_progress') return 0;
+      return -1;
+    }
+
+    function queueItemTitle(item) {
+      return compactText(item?.title || item?.url || item?.detail || `任务 #${item?.index || 1}`, 52);
+    }
+
+    function queueItemStatusText(item) {
+      if (item?.item_type === 'note_revision') {
+        if (item?.queue_status === 'failed') return '修订异常';
+        if (item?.write_status === 'pending_policy') return '待写入策略';
+        return '修订处理中';
+      }
+      if (item?.queue_status === 'in_progress' && item?.stage_label) return item.stage_label;
+      if (item?.queue_status === 'pending' && item?.stage_label && item.stage_label !== '排队中') return item.stage_label;
+      if (item?.queue_status === 'pending') return '排队中';
+      if (item?.queue_status === 'in_progress') return '处理中';
+      if (item?.queue_status === 'failed') return '失败';
+      if (item?.card_status === 'card_generation_failed') return '卡片失败';
+      if (item?.write_status === 'failed') return '写入失败';
+      if (item?.card_status === 'source_material_card') return '来源材料卡';
+      if (item?.card_status === 'temporary_card') return '临时卡';
+      if (item?.queue_status === 'completed') return '已完成';
+      return '待处理';
+    }
+
+    function queueItemClass(item) {
+      if (item?.queue_status === 'in_progress') return 'running';
+      if (item?.queue_status === 'failed') return 'bad';
+      if (item?.card_status === 'card_generation_failed' || item?.write_status === 'failed') return 'warn';
+      if (item?.queue_status === 'completed') return 'done';
+      return 'queued';
+    }
+
+    function queueItemStagesHtml(item) {
+      const activeStage = stageIndexForQueueItem(item);
+      const failed = item?.queue_status === 'failed';
+      const stages = Array.isArray(item?.stages) && item.stages.length ? item.stages : taskStages;
+      return stages.map((stage, index) => {
+        const stageClass = failed
+          ? 'bad'
+          : (activeStage > index ? 'done' : (activeStage === index ? 'active' : ''));
+        return `<span class="task-item-stage ${stageClass}">${escapeHtml(stage)}</span>`;
+      }).join('');
+    }
+
+    function setTaskQueueVisible(visible, { manual = false } = {}) {
+      if (manual) taskQueueManuallyHidden = !visible;
+      taskQueueShell.classList.toggle('is-visible', Boolean(visible));
+      taskQueueShell.setAttribute('aria-hidden', visible ? 'false' : 'true');
+      taskQueueToggleBtn.classList.toggle('is-active', Boolean(visible));
+      taskQueueToggleBtn.setAttribute('aria-pressed', visible ? 'true' : 'false');
+    }
+
+    function renderTaskQueue() {
+      const state = normalizeQueueCounts(taskQueueState || emptyTaskQueueState());
+      const stateClass = queueStateClass(state);
+
+      taskQueuePanel.classList.toggle('is-collapsed', !taskQueueExpanded);
+      taskQueuePanel.classList.toggle('is-idle', !state.total);
+      taskQueuePanel.classList.toggle('is-complete', Boolean(state.total && !state.unfinished));
+      taskQueueSubtitle.textContent = state.total > 1 ? '批量处理队列' : (state.total ? '单任务处理' : '批量处理队列');
+      taskQueueCount.textContent = `当前队列 ${state.total}`;
+      taskQueueStateBadge.textContent = queueStateLabel(state);
+      taskQueueStateBadge.className = `task-queue-state ${stateClass}`.trim();
+      taskQueueMainLabel.textContent = state.total ? (state.total > 1 ? '活跃任务' : queueItemTitle(state.items[0])) : '暂无任务';
+      taskQueueProgressText.textContent = state.total
+        ? `${state.in_progress || 0} 处理中 · ${state.pending || 0} 排队 · ${state.failed || 0} 失败`
+        : '等待新的处理任务';
+      taskQueueProgressFill.style.setProperty('--queue-progress', '0%');
+      taskQueueProgressNumber.textContent = '';
+      taskQueueExpandBtn.setAttribute('aria-expanded', taskQueueExpanded ? 'true' : 'false');
+      taskQueueButtonCount.textContent = state.total > 99 ? '99+' : String(state.total);
+      taskQueueToggleBtn.classList.toggle('is-empty', !state.total);
+
+      taskStageList.innerHTML = '';
+
+      taskQueueItems.innerHTML = state.items.length
+        ? state.items.map((item) => `
+          <li class="task-queue-item ${queueItemClass(item)}" title="${escapeHtml(item?.detail || item?.url || item?.title || '')}">
+            <span class="task-queue-dot" aria-hidden="true"></span>
+            <span class="task-queue-item-title">${escapeHtml(queueItemTitle(item))}</span>
+            <span class="task-queue-item-status">${escapeHtml(queueItemStatusText(item))}</span>
+            <span class="task-item-progress" aria-hidden="true">
+              <span class="task-item-progress-fill" style="--item-progress: ${queueItemProgressValue(item)}%"></span>
+            </span>
+            <span class="task-item-stages" aria-hidden="true">
+              ${queueItemStagesHtml(item)}
+            </span>
+          </li>
+        `).join('')
+        : `
+          <li class="task-queue-item">
+            <span class="task-queue-dot" aria-hidden="true"></span>
+            <span class="task-queue-item-title">还没有任务进入队列</span>
+            <span class="task-queue-item-status">待命</span>
+          </li>
+        `;
+      renderIcons();
+    }
+
+    function setTaskQueueState(state, { autoShow = false } = {}) {
+      taskQueueState = state;
+      renderTaskQueue();
+      if (autoShow && state?.total && !taskQueueManuallyHidden) {
+        setTaskQueueVisible(true);
+      } else if (!state?.total && !taskQueueManuallyHidden) {
+        setTaskQueueVisible(false);
+      }
+    }
+
+    function showTaskQueue() {
+      if (!taskQueueState) taskQueueState = emptyTaskQueueState();
+      taskQueueManuallyHidden = false;
+      renderTaskQueue();
+      setTaskQueueVisible(true, { manual: true });
+    }
+
+    function hideTaskQueue() {
+      setTaskQueueVisible(false, { manual: true });
+    }
+
+    function toggleTaskQueue() {
+      if (taskQueueShell.classList.contains('is-visible')) {
+        hideTaskQueue();
+      } else {
+        showTaskQueue();
+      }
+    }
+
+    function createChatMessageElement(role, text, timeText = nowTime()) {
+      const content = String(text || '-').trim() || '-';
+      const row = document.createElement('div');
+      row.className = `message-row ${role === 'user' ? 'user' : 'assistant'}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = role === 'user' ? 'message-avatar' : 'message-avatar assistant-avatar';
+      const avatarImg = document.createElement('img');
+      avatarImg.src = role === 'user' ? '/ui/minimal_chat/assets/user-avatar.png' : ASSISTANT_AVATAR_URL;
+      avatarImg.alt = role === 'user' ? '用户头像' : 'AntTrail 助手';
+      avatar.appendChild(avatarImg);
+
+      const messageContent = document.createElement('div');
+      messageContent.className = 'message-content';
+      const bubble = document.createElement('div');
+      bubble.className = `bubble ${role === 'user' ? 'user' : 'assistant'}`;
+      if (role === 'assistant') {
+        bubble.innerHTML = renderMessageMarkdown(content);
+      } else {
+        bubble.style.whiteSpace = 'pre-wrap';
+        bubble.textContent = content;
+      }
+      const time = document.createElement('span');
+      time.className = 'message-time';
+      time.textContent = timeText;
+      messageContent.appendChild(bubble);
+      messageContent.appendChild(time);
+
+      if (role === 'user') {
+        row.appendChild(messageContent);
+        row.appendChild(avatar);
+      } else {
+        row.appendChild(avatar);
+        row.appendChild(messageContent);
+      }
+      return row;
+    }
+
+    function appendChatMessage(role, text, timeText = nowTime()) {
+      const row = createChatMessageElement(role, text, timeText);
+      chatStream.appendChild(row);
+      chatStream.scrollTop = chatStream.scrollHeight;
+    }
+
+    function activeConversation() {
+      if (!conversations.length) {
+        conversations = [createBlankConversation()];
+        activeConversationId = conversations[0].id;
+        saveConversationState();
+      }
+      return conversations.find((item) => item.id === activeConversationId) || conversations[0];
+    }
+
+    function renderConversationList() {
+      conversationList.innerHTML = conversations.map((conversation) => {
+        const active = conversation.id === activeConversationId ? ' active' : '';
+        const editing = conversation.id === editingConversationId ? ' editing' : '';
+        const icon = conversation.messages.length ? 'message-square-text' : 'message-square-plus';
+        const titleContent = editingConversationId === conversation.id
+          ? `<input class="conversation-edit-input" data-conversation-edit="${escapeHtml(conversation.id)}" value="${escapeHtml(conversation.title)}" aria-label="对话名称" />`
+          : `<span class="conversation-title">${escapeHtml(conversation.title)}</span>`;
+        const actionContent = editingConversationId === conversation.id
+          ? `
+              <button class="conversation-action" type="button" data-conversation-action="save-name" title="保存" aria-label="保存名称">
+                <i data-lucide="check"></i>
+              </button>
+              <button class="conversation-action danger" type="button" data-conversation-action="cancel-name" title="取消" aria-label="取消修改">
+                <i data-lucide="x"></i>
+              </button>
+            `
+          : `
+              <button class="conversation-action" type="button" data-conversation-action="rename" title="重命名" aria-label="重命名">
+                <i data-lucide="pencil"></i>
+              </button>
+              <button class="conversation-action danger" type="button" data-conversation-action="delete" title="删除" aria-label="删除">
+                <i data-lucide="trash-2"></i>
+              </button>
+            `;
+        return `
+          <div class="conversation-item${active}${editing}" data-conversation="${escapeHtml(conversation.id)}">
+            <i data-lucide="${icon}"></i>
+            <span class="conversation-text">
+              ${titleContent}
+              <span class="conversation-date">${escapeHtml(conversation.date || '')}</span>
+            </span>
+            <span class="conversation-time">${escapeHtml(conversation.time || '')}</span>
+            <span class="conversation-actions" aria-label="对话操作">
+              ${actionContent}
+            </span>
+          </div>
+        `;
+      }).join('');
+      renderIcons();
+      const editInput = conversationList.querySelector('.conversation-edit-input');
+      if (editInput) {
+        editInput.focus();
+        editInput.select();
+      }
+    }
+
+    function renderConversation(conversationId) {
+      const target = conversations.find((item) => item.id === conversationId);
+      if (!target) return;
+      if (editingConversationId && editingConversationId !== conversationId) {
+        editingConversationId = null;
+      }
+      activeConversationId = conversationId;
+      chatTitle.textContent = target.title;
+      chatStream.innerHTML = '';
+      for (const item of target.messages) {
+        chatStream.appendChild(createChatMessageElement(item.role, item.text, item.time));
+      }
+      chatStream.scrollTop = chatStream.scrollHeight;
+      renderConversationList();
+      updateRequestPreview(buildPayload());
+      saveConversationState();
+    }
+
+    function updateActiveConversationTitle(text) {
+      const conversation = activeConversation();
+      if (!conversation || !conversation.isDraft) return;
+      const clean = String(text || '').replace(/\s+/g, ' ').trim();
+      if (!clean) return;
+      conversation.title = clean.length > 18 ? `${clean.slice(0, 18)}...` : clean;
+      conversation.isDraft = false;
+      chatTitle.textContent = conversation.title;
+      renderConversationList();
+      saveConversationState();
+    }
+
+    function createConversation() {
+      const conversation = createBlankConversation();
+      conversations.unshift(conversation);
+      message.value = '';
+      selectedAttachments = [];
+      editingConversationId = null;
+      setStatus('新对话已创建', 'ok');
+      renderConversation(conversation.id);
+    }
+
+    function startRenameConversation(conversationId) {
+      const conversation = conversations.find((item) => item.id === conversationId);
+      if (!conversation) return;
+      editingConversationId = conversationId;
+      renderConversationList();
+      setStatus('正在修改名称');
+    }
+
+    function commitRenameConversation(conversationId, nextTitle) {
+      const conversation = conversations.find((item) => item.id === conversationId);
+      if (!conversation) return;
+      const cleanTitle = String(nextTitle || '').replace(/\s+/g, ' ').trim();
+      if (!cleanTitle) {
+        setStatus('名称不能为空', 'warn');
+        renderConversationList();
+        return;
+      }
+      conversation.title = cleanTitle.slice(0, 60);
+      conversation.isDraft = false;
+      conversation.date = '今天';
+      conversation.time = nowTime();
+      editingConversationId = null;
+      if (conversation.id === activeConversationId) {
+        chatTitle.textContent = conversation.title;
+      }
+      renderConversationList();
+      saveConversationState();
+      setStatus('对话名称已修改', 'ok');
+    }
+
+    function cancelRenameConversation() {
+      editingConversationId = null;
+      renderConversationList();
+      setStatus('已取消修改');
+    }
+
+    function deleteConversation(conversationId) {
+      const conversation = conversations.find((item) => item.id === conversationId);
+      if (!conversation) return;
+      if (!window.confirm(`删除「${conversation.title}」这条对话记录？`)) return;
+      conversations = conversations.filter((item) => item.id !== conversationId);
+      if (editingConversationId === conversationId) {
+        editingConversationId = null;
+      }
+      if (!conversations.length) {
+        conversations = [createBlankConversation()];
+      }
+      if (activeConversationId === conversationId) {
+        renderConversation(conversations[0].id);
+      } else {
+        renderConversationList();
+        saveConversationState();
+      }
+      setStatus('对话记录已删除', 'ok');
+    }
+
+    function rememberAttachment(file, kind) {
+      if (!file) return;
+      selectedAttachments = [{
+        kind,
+        name: file.name,
+        type: file.type || 'application/octet-stream',
+        size: file.size,
+      }];
+      setStatus(`${kind === 'image' ? '图片' : '文件'}已选择`, 'ok');
+    }
+
+    function conversationTranscript(conversation) {
+      const target = conversation || activeConversation();
+      const lines = [`# ${target.title}`, ''];
+      if (!target.messages.length) {
+        lines.push('暂无消息。');
+      } else {
+        for (const item of target.messages) {
+          const speaker = item.role === 'user' ? 'Lucas' : 'AntTrail 助手';
+          const timeText = item.time ? ` ${item.time}` : '';
+          lines.push(`## ${speaker}${timeText}`);
+          lines.push(item.text || '-');
+          lines.push('');
+        }
+      }
+      return lines.join('\n').trim() + '\n';
+    }
+
+    function copyTextFallback(text) {
+      const tempInput = document.createElement('textarea');
+      tempInput.value = text;
+      tempInput.setAttribute('readonly', '');
+      tempInput.style.position = 'fixed';
+      tempInput.style.left = '-9999px';
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      let copied = false;
+      try {
+        copied = document.execCommand('copy');
+      } catch (error) {
+        copied = false;
+      }
+      tempInput.remove();
+      return copied;
+    }
+
+    async function shareConversation() {
+      const transcript = conversationTranscript();
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(transcript);
+          setStatus('分享文本已复制', 'ok');
+          return;
+        }
+        if (copyTextFallback(transcript)) {
+          setStatus('分享文本已复制', 'ok');
+          return;
+        }
+        throw new Error('clipboard unavailable');
+      } catch (error) {
+        if (copyTextFallback(transcript)) {
+          setStatus('分享文本已复制', 'ok');
+        } else {
+          setStatus('复制失败', 'bad');
+        }
+      }
+    }
+
+    function safeFilename(value) {
+      return String(value || 'conversation')
+        .replace(/[<>:"/\\|?*\x00-\x1F]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 80) || 'conversation';
+    }
+
+    function exportConversation() {
+      const conversation = activeConversation();
+      const blob = new Blob([conversationTranscript(conversation)], { type: 'text/markdown;charset=utf-8' });
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `${safeFilename(conversation.title)}.md`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
+      setStatus('对话已导出', 'ok');
+    }
+
+    function clearCurrentConversation() {
+      const conversation = activeConversation();
+      if (!conversation.messages.length) {
+        setStatus('当前对话已为空', 'warn');
+        return;
+      }
+      if (!window.confirm(`清空「${conversation.title}」里的聊天内容？`)) return;
+      conversation.messages = [];
+      conversation.date = '今天';
+      conversation.time = nowTime();
+      renderConversation(conversation.id);
+      setStatus('当前对话已清空', 'ok');
+    }
+
+    function clearAllConversations() {
+      if (!window.confirm('清空全部对话记录？此操作只影响本浏览器里的 UI 记录。')) return;
+      newConversationSeq = 1;
+      conversations = [createBlankConversation()];
+      activeConversationId = conversations[0].id;
+      message.value = '';
+      selectedAttachments = [];
+      editingConversationId = null;
+      renderConversation(activeConversationId);
+      setStatus('对话记录已清空', 'ok');
+    }
+
+    let providerPresets = [];
+    const defaultStoragePresets = [
+      {
+        id: 'lucas_database',
+        label: 'AntTrail Database',
+        default_base_url: 'http://127.0.0.1:8765',
+        api_key_env: 'LUCAS_DB_API_KEY',
+        endpoint: '/api/cards/ingest',
+        requires_base_url: true,
+        notes: 'AntTrail 结构化知识主库。API Key 只在后端读取，不写入前端代码。',
+      },
+      {
+        id: 'siyuan',
+        label: 'SiYuan',
+        default_base_url: 'http://127.0.0.1:6806',
+        api_key_env: 'SIYUAN_TOKEN',
+        endpoint: '/api/filetree/createDocWithMd',
+        requires_base_url: true,
+        notes: '历史兼容 Markdown Sink；默认不启用。',
+      },
+      {
+        id: 'custom_http',
+        label: '自定义',
+        default_base_url: 'http://127.0.0.1:8000',
+        api_key_env: 'CUSTOM_STORAGE_API_KEY',
+        endpoint: '/api/cards/ingest',
+        requires_base_url: true,
+        notes: '自定义 HTTP / Brain-compatible Sink；主链路是否写入仍以自动入库目标为准。',
+      },
+    ];
+    let storagePresets = [...defaultStoragePresets];
+    let storageProviderConfigs = {};
+    let databaseTargets = [];
+    let platformState = { platforms: [], classification: null };
+    let authorizationPollTimers = new Map();
+    let taskQueueState = null;
+    let taskQueueBatches = new Map();
+    let taskQueueExpanded = true;
+    let taskQueueManuallyHidden = false;
+    let taskQueueRequestSeq = 0;
+    let selectedAttachments = [];
+    const CONVERSATION_STATE_KEY = 'lucasMinimalChat.conversationState.v1';
+    const AGENT_CONFIG_KEY = 'lucasMinimalChat.agentConfig.v1';
+    const defaultConversations = [
+      {
+        id: 'kb-efficient',
+        title: '如何构建高效的知识库？',
+        date: '今天',
+        time: '10:24',
+        messages: [
+          { role: 'user', time: '10:24', text: '如何构建一个高效的企业知识库？有哪些关键步骤？' },
+          {
+            role: 'assistant',
+            time: '10:24',
+            text: '构建高效的企业知识库通常包括以下关键步骤：\n\n1. 明确目标与范围：确定知识库的使用场景、目标用户及覆盖范围。\n2. 知识收集与整理：从多渠道收集知识，进行分类、去重和结构化处理。\n3. 知识存储与管理：选择合适的存储方案，建立清晰的知识体系与标签。\n4. 检索与应用优化：优化搜索与推荐机制，结合大模型提升问答效果。\n5. 持续更新与评估：建立更新机制，定期评估知识质量与使用效果。\n\n如果需要针对某个环节展开，可以告诉我详细需求。',
+          },
+          { role: 'user', time: '10:26', text: '在知识收集与整理阶段，有哪些常见的挑战，如何解决？' },
+          {
+            role: 'assistant',
+            time: '10:27',
+            text: '在知识收集与整理阶段，常见挑战及解决方案如下：\n\n• 知识来源分散：使用统一模板和采集工具，建立标准化流程。\n• 内容质量不一：制定质量标准，结合人工审核与自动化校验。\n• 结构不统一：采用分类体系与标签体系，进行结构化整理。\n• 更新不及时：建立知识更新机制与责任人，定期维护。\n\n需要详细的方法或工具推荐，我可以继续补充。',
+          },
+        ],
+      },
+      {
+        id: 'kb-flow',
+        title: '企业知识库建设流程',
+        date: '昨天',
+        time: '昨天',
+        messages: [
+          { role: 'user', time: '昨天', text: '给我一版企业知识库从 0 到 1 的建设流程。' },
+          {
+            role: 'assistant',
+            time: '昨天',
+            text: '可以按四个阶段推进：\n\n1. 盘点资料来源和权限边界。\n2. 建立分类、标签和质量标准。\n3. 接入采集、清洗、向量索引和问答验证。\n4. 用运营机制持续维护，定期淘汰低质量内容。',
+          },
+        ],
+      },
+      {
+        id: 'kb-permission',
+        title: '知识库权限管理方案',
+        date: '昨天',
+        time: '昨天',
+        messages: [
+          { role: 'user', time: '昨天', text: '知识库权限管理应该怎么设计？' },
+          {
+            role: 'assistant',
+            time: '昨天',
+            text: '建议把权限拆成内容权限、操作权限和审计权限三层。内容按部门、项目和密级分组；操作区分查看、编辑、发布、归档；审计保留来源、变更人和更新时间。',
+          },
+        ],
+      },
+      {
+        id: 'rag-summary',
+        title: 'RAG 技术原理简述',
+        date: '05-20',
+        time: '05-20',
+        messages: [
+          { role: 'user', time: '05-20', text: '简单解释一下 RAG 的核心原理。' },
+          {
+            role: 'assistant',
+            time: '05-20',
+            text: 'RAG 是“检索增强生成”。它先从知识库检索相关材料，再把材料连同问题交给模型生成答案。关键是切分、索引、召回、重排和引用约束。',
+          },
+        ],
+      },
+      {
+        id: 'qa-accuracy',
+        title: '如何提升问答准确率？',
+        date: '05-19',
+        time: '05-19',
+        messages: [
+          { role: 'user', time: '05-19', text: '知识库问答不稳定时，怎么提升准确率？' },
+          {
+            role: 'assistant',
+            time: '05-19',
+            text: '先排查材料质量，再看召回链路。常见动作包括优化 chunk、补充同义词、增加重排、限制模型只基于材料回答，并记录低置信度问题进入人工复核。',
+          },
+        ],
+      },
+      {
+        id: 'kb-llm',
+        title: '知识库与大模型的关系',
+        date: '05-18',
+        time: '05-18',
+        messages: [
+          { role: 'user', time: '05-18', text: '知识库和大模型分别负责什么？' },
+          {
+            role: 'assistant',
+            time: '05-18',
+            text: '知识库负责稳定、可追溯、可治理的事实材料；大模型负责理解问题、组织语言和生成回答。两者结合时，知识库提供边界，模型提供表达能力。',
+          },
+        ],
+      },
+      {
+        id: 'cleaning',
+        title: '数据清洗最佳实践',
+        date: '05-17',
+        time: '05-17',
+        messages: [
+          { role: 'user', time: '05-17', text: '数据清洗有哪些最佳实践？' },
+          {
+            role: 'assistant',
+            time: '05-17',
+            text: '优先保留来源、时间、作者和版本；清理重复、噪声、模板页眉页脚；把长文拆成主题稳定的片段；为每个片段补充分类、标签和质量标记。',
+          },
+        ],
+      },
+      {
+        id: 'training-outline',
+        title: '知识库使用培训大纲',
+        date: '05-16',
+        time: '05-16',
+        messages: [
+          { role: 'user', time: '05-16', text: '写一份知识库使用培训大纲。' },
+          {
+            role: 'assistant',
+            time: '05-16',
+            text: '培训可以覆盖入口导航、检索方法、内容贡献规范、权限说明、反馈机制和常见问题。最后安排一次真实案例演练，让用户完成“查找、引用、反馈”闭环。',
+          },
+        ],
+      },
+    ];
+
+    function cloneConversation(conversation) {
+      return {
+        ...conversation,
+        messages: (conversation.messages || []).map((messageItem) => ({ ...messageItem })),
+      };
+    }
+
+    function cloneDefaultConversations() {
+      return defaultConversations.map(cloneConversation);
+    }
+
+    function sanitizeConversationText(text, { dropPathLines = false } = {}) {
+      return String(text || '')
+        .split(/\r?\n/)
+        .filter((line) => {
+          const trimmed = line.trim();
+          if (trimmed.includes('\uFFFD')) return false;
+          if (dropPathLines && /^(路径|文件树|Brain 路径|AntTrail 路径|SiYuan path|write_path)\s*[:：]/i.test(trimmed)) return false;
+          return true;
+        })
+        .join('\n')
+        .trim();
+    }
+
+    function normalizeConversation(rawConversation, index = 0) {
+      if (!rawConversation || typeof rawConversation !== 'object') return null;
+      const id = String(rawConversation.id || `restored-${Date.now()}-${index}`);
+      const messages = Array.isArray(rawConversation.messages)
+        ? rawConversation.messages.map((messageItem) => {
+          if (!messageItem || typeof messageItem !== 'object') return null;
+          return {
+            role: messageItem.role === 'user' ? 'user' : 'assistant',
+            text: sanitizeConversationText(messageItem.text),
+            time: String(messageItem.time || ''),
+          };
+        }).filter((messageItem) => messageItem && messageItem.text)
+        : [];
+      return {
+        id,
+        title: String(rawConversation.title || '未命名对话').trim() || '未命名对话',
+        date: String(rawConversation.date || '今天'),
+        time: String(rawConversation.time || ''),
+        messages,
+        isDraft: Boolean(rawConversation.isDraft),
+      };
+    }
+
+    function createBlankConversation(title = null) {
+      const id = `local-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      return {
+        id,
+        title: title || `新建对话 ${newConversationSeq++}`,
+        date: '今天',
+        time: nowTime(),
+        messages: [],
+        isDraft: true,
+      };
+    }
+
+    function defaultConversationState() {
+      const seededConversations = cloneDefaultConversations();
+      return {
+        conversations: seededConversations,
+        activeConversationId: seededConversations[0]?.id || 'kb-efficient',
+        newConversationSeq: 1,
+      };
+    }
+
+    function loadConversationState() {
+      const fallback = defaultConversationState();
+      try {
+        const rawState = window.localStorage.getItem(CONVERSATION_STATE_KEY);
+        if (!rawState) return fallback;
+        const parsed = JSON.parse(rawState);
+        const restoredConversations = Array.isArray(parsed?.conversations)
+          ? parsed.conversations.map(normalizeConversation).filter(Boolean)
+          : [];
+        if (!restoredConversations.length) return fallback;
+        const restoredActiveId = restoredConversations.some((item) => item.id === parsed.activeConversationId)
+          ? String(parsed.activeConversationId)
+          : restoredConversations[0].id;
+        const restoredSeq = Number(parsed.newConversationSeq);
+        return {
+          conversations: restoredConversations,
+          activeConversationId: restoredActiveId,
+          newConversationSeq: Number.isFinite(restoredSeq) ? Math.max(1, restoredSeq) : 1,
+        };
+      } catch (error) {
+        return fallback;
+      }
+    }
+
+    function saveConversationState() {
+      try {
+        window.localStorage.setItem(CONVERSATION_STATE_KEY, JSON.stringify({
+          conversations,
+          activeConversationId,
+          newConversationSeq,
+        }));
+      } catch (error) {
+        setStatus('本地保存失败', 'warn');
+      }
+    }
+
+    let { conversations, activeConversationId, newConversationSeq } = loadConversationState();
+    let editingConversationId = null;
+
+    const fields = {
+      okVal: document.getElementById('okVal'),
+      statusVal: document.getElementById('statusVal'),
+      jobIdVal: document.getElementById('jobIdVal'),
+      handledByVal: document.getElementById('handledByVal'),
+      brainStatusVal: document.getElementById('brainStatusVal'),
+      brainCardIdVal: document.getElementById('brainCardIdVal'),
+      brainNodeIdVal: document.getElementById('brainNodeIdVal'),
+      brainPathVal: document.getElementById('brainPathVal'),
+      replyVal: document.getElementById('replyVal'),
+      errorVal: document.getElementById('errorVal'),
+    };
+    const hasResultFields = Object.values(fields).some(Boolean);
+
+    function writeOptionalJson(target, payload) {
+      if (target) target.textContent = JSON.stringify(payload, null, 2);
+    }
+
+    function updateRequestPreview(payload) {
+      writeOptionalJson(requestJson, payload);
+    }
+
+    function updateResponsePreview(payload) {
+      writeOptionalJson(responseJson, payload);
+    }
+
+    function setResultField(fieldName, value) {
+      if (fields[fieldName]) fields[fieldName].textContent = value;
+    }
+
+    function setStatus(text, kind = '') {
+      statusText.textContent = text;
+      dot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function setConfigStatus(text, kind = '') {
+      configStatusText.textContent = text;
+      configDot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function setStorageStatus(text, kind = '') {
+      storageStatusText.textContent = text;
+      storageDot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function setAgentStatus(text, kind = '') {
+      agentStatusText.textContent = text;
+      agentDot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function setSubmitStatus(text, kind = '') {
+      submitStatusText.textContent = text;
+      submitDot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function setCacheStatus(text, kind = '') {
+      cacheStatusText.textContent = text;
+      cacheDot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function setWechatBridgeStatus(text, kind = '') {
+      wechatBridgeState.textContent = text;
+      wechatBridgeDot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function configEndpoint() {
+      return configApiUrl.value.trim() || '/api/ai/config';
+    }
+
+    function aiApiBase() {
+      const raw = configEndpoint();
+      return raw.endsWith('/api/ai/config') ? raw.slice(0, -'/api/ai/config'.length) : '';
+    }
+
+    function storageEndpoint() {
+      return `${aiApiBase()}/api/storage/config`;
+    }
+
+    function storageTestEndpoint() {
+      return `${aiApiBase()}/api/storage/test`;
+    }
+
+    function intakeEndpoint(url = '') {
+      const query = url ? `?url=${encodeURIComponent(url)}` : '';
+      return `${aiApiBase()}/api/intake/platforms${query}`;
+    }
+
+    function authorizeEndpoint(platformId) {
+      return `${aiApiBase()}/api/intake/authorize/${encodeURIComponent(platformId)}`;
+    }
+
+    function authorizationTestEndpoint(platformId) {
+      return `${authorizeEndpoint(platformId)}/test`;
+    }
+
+    function wechatBridgeEndpoint(action = 'status') {
+      return `${aiApiBase()}/api/wechat-bridge/${action}`;
+    }
+
+    function cacheClearEndpoint() {
+      return `${aiApiBase()}/api/system/cache/clear`;
+    }
+
+    function firstUrl(text) {
+      const match = String(text || '').match(/https?:\/\/[^\s<>"'“”\]\)]+/i);
+      return match ? match[0] : '';
+    }
+
+    function localBackendRestartHint(error) {
+      const text = String(error || '');
+      if (text.includes('Not Found') || text.includes('404')) {
+        return '本地 3963 后端还是旧版本，请停止旧进程后从当前分支重启：python -m uvicorn server.chat_api:app --host 127.0.0.1 --port 3963';
+      }
+      return text;
+    }
+
+    function renderWechatBridgeStatus(payload) {
+      const running = Boolean(payload?.running);
+      const status = String(payload?.status || (running ? 'running' : 'stopped'));
+      const modeLabel = payload?.mode_label || '微信链接入库桥';
+      const savedLoginPresent = Boolean(payload?.saved_login_present);
+      const qrImageUrl = payload?.qr_image_url || '';
+      const qrCodeUrl = payload?.qr_code_url || '';
+      setWechatBridgeStatus(running ? '微信桥运行中' : (status === 'dry_run' ? '启动命令已就绪' : '微信桥未运行'), running ? 'ok' : '');
+      wechatBridgePid.textContent = running && payload?.pid ? `PID ${payload.pid}` : 'PID -';
+      wechatBridgePath.textContent = payload?.script_exists === false
+        ? '入口：启动脚本不存在'
+        : `入口：${payload?.script_path || '等待读取'}`;
+      const handlesLinks = payload?.handles_links !== false;
+      const handlesText = payload?.handles_plain_text !== false;
+      const capabilityText = handlesLinks && handlesText
+        ? '能力：链接入库 + 数据库问答'
+        : `模式：${modeLabel}`;
+      wechatBridgeAdapter.textContent = capabilityText;
+      startWechatBridgeBtn.disabled = running;
+      rescanWechatBridgeBtn.disabled = payload?.command_available === false;
+      stopWechatBridgeBtn.disabled = !running;
+      const lines = Array.isArray(payload?.log_tail) ? payload.log_tail : [];
+      wechatBridgeLog.textContent = lines.length
+        ? lines.join('\n')
+        : '点击“启动微信桥”后，这里会显示真实 bridge 输出；如果需要扫码，二维码会出现在这里。';
+      if (qrImageUrl || qrCodeUrl) {
+        wechatBridgeQrBox.classList.add('visible');
+        wechatBridgeQrImage.src = qrImageUrl || qrCodeUrl;
+        openWechatQrBtn.disabled = false;
+        openWechatQrBtn.dataset.qrUrl = qrCodeUrl || qrImageUrl;
+      } else {
+        wechatBridgeQrBox.classList.remove('visible');
+        wechatBridgeQrImage.removeAttribute('src');
+        openWechatQrBtn.disabled = true;
+        openWechatQrBtn.dataset.qrUrl = '';
+      }
+      if (payload?.command_available === false) {
+        wechatBridgeHint.textContent = '未检测到 Node.js。需要先修复本机 Node.js 命令，再启动微信桥。';
+        setWechatBridgeStatus('微信桥命令不可用', 'warn');
+      } else if (running) {
+        wechatBridgeHint.textContent = qrCodeUrl
+          ? '二维码已生成。请用微信扫码并在手机上确认，确认后桥会继续连接 Chat Gateway。'
+          : savedLoginPresent
+          ? '当前复用本机微信登录态。保持 3963 服务和微信桥进程开启；需要换号或重新授权时点“重新扫码登录”。'
+          : '保持本地 3963 服务和微信桥进程开启；普通消息会进入数据库问答，链接会进入自动入库。';
+      } else if (payload?.last_exit_code !== null && payload?.last_exit_code !== undefined) {
+        wechatBridgeHint.textContent = `微信桥已停止，退出码 ${payload.last_exit_code}。需要重新测试时可以再次启动。`;
+      } else {
+        wechatBridgeHint.textContent = savedLoginPresent
+          ? '检测到本机已有微信登录态。点“启动微信桥”会直接复用；点“重新扫码登录”会强制显示二维码。'
+          : '未检测到本机微信登录态。点“启动微信桥”后会输出二维码，扫码确认后即可测试。';
+      }
+    }
+
+    async function loadWechatBridgeStatus() {
+      try {
+        const response = await fetch(wechatBridgeEndpoint('status'), { method: 'GET' });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '读取失败');
+        }
+        renderWechatBridgeStatus(payload);
+        return payload;
+      } catch (error) {
+        setWechatBridgeStatus('微信桥状态读取失败', 'bad');
+        wechatBridgeHint.textContent = localBackendRestartHint(error);
+        return null;
+      }
+    }
+
+    function startWechatBridgePolling() {
+      if (wechatBridgePollTimer) clearInterval(wechatBridgePollTimer);
+      wechatBridgePollTimer = setInterval(loadWechatBridgeStatus, 2200);
+    }
+
+    function stopWechatBridgePolling() {
+      if (wechatBridgePollTimer) clearInterval(wechatBridgePollTimer);
+      wechatBridgePollTimer = null;
+    }
+
+    async function clearMediaCache({ dry_run = false } = {}) {
+      const olderThanHours = Math.max(0, Number(cacheOlderThanHours.value || 0));
+      previewCacheClearBtn.disabled = true;
+      clearCacheBtn.disabled = true;
+      setCacheStatus(dry_run ? '正在扫描缓存' : '正在清除缓存');
+      try {
+        const response = await fetch(cacheClearEndpoint(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            dry_run,
+            older_than_hours: olderThanHours,
+          }),
+        });
+        const payload = await response.json();
+        writeOptionalJson(cacheResultJson, payload);
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '清理失败');
+        }
+        const summary = `${payload.deleted_items || 0} 项 / ${payload.files || 0} 个文件 / ${payload.bytes_label || '0 B'}`;
+        setCacheStatus(dry_run ? `可清理 ${summary}` : `已清理 ${summary}`, payload.deleted_items ? 'ok' : 'warn');
+      } catch (error) {
+        const payload = { ok: false, status: 'request_failed', error: localBackendRestartHint(error) };
+        writeOptionalJson(cacheResultJson, payload);
+        setCacheStatus('缓存清理失败', 'bad');
+      } finally {
+        previewCacheClearBtn.disabled = false;
+        clearCacheBtn.disabled = false;
+      }
+    }
+
+    function openWechatBridgeModal() {
+      wechatBridgeModal.setAttribute('aria-hidden', 'false');
+      document.body.classList.add('wechat-modal-open');
+      loadWechatBridgeStatus();
+      startWechatBridgePolling();
+      renderIcons();
+    }
+
+    function closeWechatBridgeModal() {
+      wechatBridgeModal.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('wechat-modal-open');
+      stopWechatBridgePolling();
+    }
+
+    async function startWechatBridge(options = {}) {
+      const forceRelogin = Boolean(options.forceRelogin);
+      startWechatBridgeBtn.disabled = true;
+      rescanWechatBridgeBtn.disabled = true;
+      setWechatBridgeStatus(forceRelogin ? '正在准备扫码登录' : '正在启动微信桥');
+      wechatBridgeHint.textContent = forceRelogin
+        ? '正在停止旧桥并强制重新登录；二维码输出后请用微信扫码确认。'
+        : '正在启动 Lucas 微信桥；如果没有可用登录态，二维码会输出在日志里。';
+      try {
+        const response = await fetch(wechatBridgeEndpoint('start'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(forceRelogin ? { force_relogin: true } : {}),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '启动失败');
+        }
+        renderWechatBridgeStatus(payload);
+        setStatus('微信桥已启动', 'ok');
+      } catch (error) {
+        setWechatBridgeStatus('微信桥启动失败', 'bad');
+        wechatBridgeHint.textContent = localBackendRestartHint(error);
+        setStatus('微信桥启动失败', 'bad');
+      } finally {
+        const status = await loadWechatBridgeStatus();
+        startWechatBridgeBtn.disabled = Boolean(status?.running);
+        rescanWechatBridgeBtn.disabled = Boolean(status?.command_available === false);
+      }
+    }
+
+    async function stopWechatBridge() {
+      stopWechatBridgeBtn.disabled = true;
+      setWechatBridgeStatus('正在停止微信桥');
+      try {
+        const response = await fetch(wechatBridgeEndpoint('stop'), { method: 'POST' });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '停止失败');
+        }
+        renderWechatBridgeStatus(payload);
+        setStatus('微信桥已停止', 'ok');
+      } catch (error) {
+        setWechatBridgeStatus('微信桥停止失败', 'bad');
+        wechatBridgeHint.textContent = localBackendRestartHint(error);
+        setStatus('微信桥停止失败', 'bad');
+      } finally {
+        const status = await loadWechatBridgeStatus();
+        stopWechatBridgeBtn.disabled = !status?.running;
+      }
+    }
+
+    function buildConfigPayload(includeKey = true) {
+      const payload = {
+        provider_id: providerSelect.value,
+        base_url: baseUrl.value.trim(),
+        model: modelName.value.trim(),
+      };
+      if (includeKey && apiKey.value.trim()) payload.api_key = apiKey.value.trim();
+      return payload;
+    }
+
+    function providerById(id) {
+      return providerPresets.find((item) => item.id === id);
+    }
+
+    function storageProviderById(id) {
+      return storagePresets.find((item) => item.id === id);
+    }
+
+    function storageProviderConfigById(id) {
+      return storageProviderConfigs?.[id] || {};
+    }
+
+    function readAgentConfig() {
+      const defaults = {
+        display_name: 'Lucas',
+        temperature: 0.2,
+        system_prompt: '',
+      };
+      try {
+        const parsed = JSON.parse(window.localStorage.getItem(AGENT_CONFIG_KEY) || '{}');
+        return {
+          display_name: String(parsed.display_name || defaults.display_name).slice(0, 40),
+          temperature: Number.isFinite(Number(parsed.temperature)) ? Math.min(2, Math.max(0, Number(parsed.temperature))) : defaults.temperature,
+          system_prompt: String(parsed.system_prompt || defaults.system_prompt).slice(0, 2000),
+        };
+      } catch (error) {
+        return defaults;
+      }
+    }
+
+    function renderAgentConfig() {
+      const config = readAgentConfig();
+      agentDisplayName.value = config.display_name;
+      agentTemperature.value = String(config.temperature);
+      agentSystemPrompt.value = config.system_prompt;
+      setAgentStatus('本地配置已读取', 'ok');
+    }
+
+    function saveAgentConfig() {
+      const temperature = Number(agentTemperature.value || 0.2);
+      const config = {
+        display_name: agentDisplayName.value.trim() || 'Lucas',
+        temperature: Number.isFinite(temperature) ? Math.min(2, Math.max(0, temperature)) : 0.2,
+        system_prompt: agentSystemPrompt.value.trim(),
+      };
+      window.localStorage.setItem(AGENT_CONFIG_KEY, JSON.stringify(config));
+      renderAgentConfig();
+      updateRequestPreview(buildPayload());
+      setAgentStatus('Agent 配置已保存', 'ok');
+    }
+
+    function resetAgentConfig() {
+      window.localStorage.removeItem(AGENT_CONFIG_KEY);
+      renderAgentConfig();
+      updateRequestPreview(buildPayload());
+      setAgentStatus('Agent 配置已恢复默认', 'ok');
+    }
+
+    function safeDatabaseTargetId(value, fallback) {
+      const raw = String(value || fallback).trim().toLowerCase().replaceAll('-', '_');
+      const safe = raw.replace(/[^a-z0-9_]+/g, '_').split('_').filter(Boolean).join('_');
+      return safe.slice(0, 40) || fallback;
+    }
+
+    function defaultDatabaseTarget(index = 0) {
+      const provider = storageProviderConfigById('lucas_database');
+      const preset = storageProviderById('lucas_database') || {};
+      return {
+        id: index === 0 ? 'main' : `database_${index + 1}`,
+        label: index === 0 ? 'AntTrail 主数据库' : `AntTrail 数据库 ${index + 1}`,
+        base_url: provider.base_url || preset.default_base_url || 'http://127.0.0.1:8765',
+        web_url: 'http://127.0.0.1:5173/',
+        endpoint: provider.endpoint || preset.endpoint || '/api/cards/ingest',
+        api_key_env: provider.api_key_env || preset.api_key_env || 'LUCAS_DB_API_KEY',
+        enabled: true,
+        selected: true,
+      };
+    }
+
+    function selectedBrainTargetConfig() {
+      const selected = collectDatabaseTargets().find((target) => target.selected)
+        || databaseTargets.find((target) => target.selected !== false)
+        || databaseTargets[0];
+      return selected || defaultDatabaseTarget(0);
+    }
+
+    function openDatabaseWebUrl(rawUrl, { replaceCurrent = false } = {}) {
+      const text = String(rawUrl || '').trim() || 'http://127.0.0.1:5173/';
+      const url = /^https?:\/\//i.test(text) ? text : `http://${text}`;
+      if (replaceCurrent) {
+        window.location.href = url;
+        return;
+      }
+      const opened = window.open(url, '_blank', 'noopener,noreferrer');
+      setStorageStatus(opened ? `已打开数据库页面：${url}` : `浏览器阻止了弹窗，请手动打开：${url}`, opened ? 'ok' : 'warn');
+    }
+
+    function updateDatabaseEntryButton() {
+      const selected = selectedBrainTargetConfig();
+      const url = selected.web_url || 'http://127.0.0.1:5173/';
+      openDatabaseBtn.dataset.databaseUrl = url;
+      openDatabaseBtn.title = `进入数据库：${url}`;
+    }
+
+    function renderDatabaseTargets() {
+      if (!databaseTargets.length) {
+        databaseTargets = [defaultDatabaseTarget(0)];
+      }
+      databaseTargetList.innerHTML = databaseTargets.map((target, index) => {
+        const targetId = escapeHtml(target.id || `database_${index + 1}`);
+        const label = escapeHtml(target.label || `数据库 ${index + 1}`);
+        const baseUrl = escapeHtml(target.base_url || '');
+        const webUrl = escapeHtml(target.web_url || 'http://127.0.0.1:5173/');
+        const endpoint = escapeHtml(target.endpoint || '/api/cards/ingest');
+        const checked = target.selected !== false && target.enabled !== false ? 'checked' : '';
+        return `
+          <div class="database-target-row" data-database-target="${targetId}">
+            <div class="database-target-head">
+              <label>
+                <input data-db-field="selected" type="checkbox" ${checked} />
+                <span>${label}</span>
+              </label>
+              <div class="database-target-actions">
+                <button class="secondary" type="button" data-db-action="open-page">打开页面</button>
+                <button class="secondary database-target-remove" type="button" data-db-action="remove" ${databaseTargets.length <= 1 ? 'disabled' : ''}>移除</button>
+              </div>
+            </div>
+            <div class="database-target-grid">
+              <div class="field">
+                <label>名称</label>
+                <input data-db-field="label" value="${label}" placeholder="主数据库" />
+              </div>
+              <div class="field">
+                <label>Base URL</label>
+                <input data-db-field="base_url" value="${baseUrl}" placeholder="http://127.0.0.1:8765" />
+              </div>
+              <div class="field">
+                <label>Web URL</label>
+                <input data-db-field="web_url" value="${webUrl}" placeholder="http://127.0.0.1:5173/" />
+              </div>
+              <div class="field">
+                <label>Endpoint</label>
+                <input data-db-field="endpoint" value="${endpoint}" placeholder="/api/cards/ingest" />
+              </div>
+            </div>
+            <div class="row">
+              <span class="pill">token: 使用上方 API Key / Token</span>
+              <span class="pill">entry: ${webUrl}</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function collectDatabaseTargets() {
+      return Array.from(databaseTargetList.querySelectorAll('[data-database-target]')).map((row, index) => {
+        const existing = databaseTargets[index] || defaultDatabaseTarget(index);
+        const label = row.querySelector('[data-db-field="label"]')?.value?.trim() || existing.label || `数据库 ${index + 1}`;
+        const baseUrlValue = row.querySelector('[data-db-field="base_url"]')?.value?.trim() || '';
+        const webUrlValue = row.querySelector('[data-db-field="web_url"]')?.value?.trim() || 'http://127.0.0.1:5173/';
+        const endpointValue = row.querySelector('[data-db-field="endpoint"]')?.value?.trim() || '/api/cards/ingest';
+        const selected = Boolean(row.querySelector('[data-db-field="selected"]')?.checked);
+        return {
+          id: existing.id || safeDatabaseTargetId(label, `database_${index + 1}`),
+          label,
+          base_url: baseUrlValue,
+          web_url: webUrlValue,
+          endpoint: endpointValue,
+          api_key_env: existing.api_key_env || storageProviderById('lucas_database')?.api_key_env || 'LUCAS_DB_API_KEY',
+          enabled: selected,
+          selected,
+        };
+      }).filter((target) => target.base_url);
+    }
+
+    function addDatabaseTarget() {
+      const next = defaultDatabaseTarget(databaseTargets.length);
+      next.id = safeDatabaseTargetId(next.id, `database_${databaseTargets.length + 1}`);
+      databaseTargets.push(next);
+      targetBrain.checked = true;
+      renderDatabaseTargets();
+      updateDatabaseEntryButton();
+      renderIcons();
+    }
+
+    function renderProviderSelect(activeId) {
+      providerSelect.innerHTML = '';
+      for (const preset of providerPresets) {
+        const option = document.createElement('option');
+        option.value = preset.id;
+        option.textContent = preset.label;
+        providerSelect.appendChild(option);
+      }
+      if (activeId) providerSelect.value = activeId;
+    }
+
+    function applyPreset(providerId, overwrite = true) {
+      const preset = providerById(providerId);
+      if (!preset) return;
+      if (overwrite) {
+        baseUrl.value = preset.default_base_url || '';
+        modelName.value = preset.default_model || '';
+        modelOptions.innerHTML = '';
+      }
+      providerNote.textContent = preset.notes || '选择提供商后会自动填入默认 URL 和模型名。';
+      visionState.textContent = `vision: ${preset.supports_vision ? 'supported' : 'text-only/unknown'}`;
+      protocolState.textContent = `protocol: ${preset.protocol}`;
+    }
+
+    function renderConfig(payload) {
+      providerPresets = payload.presets || providerPresets;
+      const provider = payload.provider || {};
+      renderProviderSelect(payload.active_provider || provider.provider_id);
+      providerSelect.value = provider.provider_id || payload.active_provider || providerSelect.value;
+      baseUrl.value = provider.base_url || providerById(providerSelect.value)?.default_base_url || '';
+      modelName.value = provider.model || providerById(providerSelect.value)?.default_model || '';
+      apiKey.value = '';
+      keyState.textContent = provider.api_key_present ? `key: present ...${provider.api_key_last4 || '****'}` : `key: missing (${provider.api_key_env || 'env/local'})`;
+      visionState.textContent = `vision: ${provider.supports_vision ? 'supported' : 'text-only/unknown'}`;
+      protocolState.textContent = `protocol: ${provider.protocol || 'unknown'}`;
+      providerNote.textContent = provider.notes || providerById(providerSelect.value)?.notes || '';
+    }
+
+    function renderStorageProviderSelect(activeId) {
+      storageProviderSelect.innerHTML = '';
+      if (!storagePresets.length) storagePresets = [...defaultStoragePresets];
+      for (const preset of storagePresets.filter((item) => item.id !== 'siyuan')) {
+        const option = document.createElement('option');
+        option.value = preset.id;
+        option.textContent = preset.label;
+        storageProviderSelect.appendChild(option);
+      }
+      if (activeId) storageProviderSelect.value = activeId;
+    }
+
+    function applyStoragePreset(providerId, overwrite = true) {
+      const preset = storageProviderById(providerId);
+      const stored = storageProviderConfigById(providerId);
+      if (!preset) return;
+      if (overwrite) storageBaseUrl.value = stored.base_url || preset.default_base_url || '';
+      if (overwrite) storageProviderEndpoint.value = stored.endpoint || preset.endpoint || '';
+      storageKeyState.textContent = stored.api_key_present
+        ? `key: present (${stored.api_key_env || preset.api_key_env})`
+        : `key: ${stored.api_key_env || preset.api_key_env || 'env/local'}`;
+      storageEndpointState.textContent = `endpoint: ${stored.endpoint || preset.endpoint || 'unknown'}`;
+      storageNote.textContent = stored.notes || preset.notes || '';
+    }
+
+    function selectedStorageTargets() {
+      if (!autoIngestToggle.checked) return [];
+      const targets = [];
+      if (targetSiyuan.checked) targets.push('siyuan');
+      if (targetBrain.checked) targets.push('lucas_database');
+      return targets;
+    }
+
+    function targetStatusText(target) {
+      if (!target) return '状态：未读取';
+      if (!target.enabled) return '状态：未勾选';
+      if (target.can_write) return `状态：可写 · key present (${target.api_key_env || 'env'})`;
+      if (target.status === 'missing_key') return `状态：缺少 ${target.api_key_env || 'API Key'}`;
+      if (target.status === 'missing_base_url') return '状态：缺少 Base URL';
+      return `状态：${target.reason || target.status || '未就绪'}`;
+    }
+
+    function renderStorageTargets(payload) {
+      const targets = Array.isArray(payload.storage_targets) ? payload.storage_targets : ['lucas_database'];
+      autoIngestToggle.checked = payload.auto_ingest_enabled !== false && targets.length > 0;
+      targetSiyuan.checked = targets.includes('siyuan');
+      targetBrain.checked = targets.includes('lucas_database') || targets.includes('brain');
+      targetSiyuan.disabled = !autoIngestToggle.checked;
+      targetBrain.disabled = !autoIngestToggle.checked;
+      const options = Array.isArray(payload.target_options) ? payload.target_options : [];
+      const siyuanStatus = options.find((item) => item?.target_id === 'siyuan');
+      const brainStatus = options.find((item) => item?.target_id === 'lucas_database');
+      targetSiyuanStatus.textContent = targetStatusText(siyuanStatus);
+      targetBrainStatus.textContent = targetStatusText(brainStatus);
+    }
+
+    function updateStorageTargetControls() {
+      const enabled = autoIngestToggle.checked;
+      targetSiyuan.disabled = !enabled;
+      targetBrain.disabled = !enabled;
+      if (!enabled) {
+        setStorageStatus('自动入库已关闭，保存后不写入外部存储', 'warn');
+      }
+    }
+
+    function brainTargetProviderId() {
+      return storageProviderSelect.value === 'custom_http' ? 'custom_http' : 'lucas_database';
+    }
+
+    function updateTargetStatusFromTest(providerId, data) {
+      const nextStatus = data.ok
+        ? '状态：连接通过'
+        : `状态：${data.status || data.error || '测试失败'}`;
+      if (providerId === 'siyuan') {
+        targetSiyuanStatus.textContent = nextStatus;
+      } else if (providerId === 'lucas_database' || providerId === 'custom_http') {
+        targetBrainStatus.textContent = nextStatus;
+      }
+    }
+
+    function renderStorageConfig(payload) {
+      storagePresets = payload.presets?.length ? payload.presets : storagePresets;
+      storageProviderConfigs = payload.providers || {};
+      const provider = payload.provider || {};
+      renderStorageProviderSelect(payload.active_provider || provider.provider_id);
+      storageProviderSelect.value = provider.provider_id || payload.active_provider || storageProviderSelect.value;
+      storageProviderConfigs[provider.provider_id || storageProviderSelect.value] = provider;
+      storageBaseUrl.value = provider.base_url || storageProviderById(storageProviderSelect.value)?.default_base_url || '';
+      storageProviderEndpoint.value = provider.endpoint || storageProviderById(storageProviderSelect.value)?.endpoint || '';
+      storageApiKey.value = '';
+      storageKeyState.textContent = provider.api_key_present ? `key: present (${provider.api_key_env})` : `key: missing (${provider.api_key_env || 'env/local'})`;
+      storageEndpointState.textContent = `endpoint: ${provider.endpoint || storageProviderById(storageProviderSelect.value)?.endpoint || 'unknown'}`;
+      const activeTargets = Array.isArray(payload.storage_targets) ? payload.storage_targets : [];
+      databaseTargets = Array.isArray(payload.database_targets) && payload.database_targets.length
+        ? payload.database_targets.map((target, index) => ({
+            ...defaultDatabaseTarget(index),
+            ...target,
+            selected: target.selected !== false,
+          }))
+        : [defaultDatabaseTarget(0)];
+      renderDatabaseTargets();
+      updateDatabaseEntryButton();
+      renderStorageTargets(payload);
+      const targetLabelMap = { lucas_database: 'AntTrail Database', siyuan: 'SiYuan' };
+      const targetText = activeTargets.length ? activeTargets.map((target) => targetLabelMap[target] || target).join(' + ') : 'none';
+      storageNote.textContent = `当前写入策略：${payload.auto_ingest_enabled === false || !activeTargets.length ? '关闭自动入库' : targetText}。${provider.notes || storageProviderById(storageProviderSelect.value)?.notes || ''}`;
+    }
+
+    function authorizationBadge(auth) {
+      if (!auth) return '<span class="badge warn">未知</span>';
+      if (auth.state === 'not_required') return '<span class="badge ok">无需授权</span>';
+      if (auth.state === 'verified') return `<span class="badge ok">${auth.label || '授权可用'}</span>`;
+      if (auth.authorized) return `<span class="badge ok">${auth.label || '会话可用'}</span>`;
+      return `<span class="badge warn">${auth.label || '未授权'}</span>`;
+    }
+
+    function authTestText(auth) {
+      const lastTest = auth?.last_test || {};
+      if (!lastTest.status) return '';
+      const label = lastTest.label || lastTest.status;
+      const next = lastTest.next_step ? `；${lastTest.next_step}` : '';
+      return `最近测试：${label}${next}`;
+    }
+
+    function renderRoute(classification) {
+      if (!classification) {
+        routePlatform.textContent = '当前消息：待识别';
+        routeBadge.textContent = '未分类';
+        routeBadge.className = 'badge';
+        routeStrategy.textContent = '粘贴链接后会显示：视频、文章、混合笔记或普通网页路线；平台只作为授权上下文。';
+        return;
+      }
+      routePlatform.textContent = `当前消息：${classification.route_label || classification.route_id}`;
+      routeBadge.textContent = classification.route_level || classification.source_type || 'classified';
+      routeBadge.className = `badge ${classification.auth_required ? 'warn' : 'ok'}`;
+      routeStrategy.textContent = `${classification.strategy || ''}（上下文：${classification.platform_label || classification.platform_id}；依据：${classification.route_basis || 'unknown'}）`;
+    }
+
+    function renderPlatforms(payload) {
+      platformState = payload || { platforms: [], classification: null };
+      renderRoute(platformState.classification || null);
+      platformGrid.innerHTML = '';
+      for (const platform of platformState.platforms || []) {
+        const auth = platform.authorization || {};
+        const canOpen = Boolean(auth.can_authorize);
+        const canTest = Boolean(auth.can_test);
+        const buttonLabel = auth.session_ready ? '重新授权' : '授权登录';
+        const forceReopen = Boolean(auth.session_ready || auth.state === 'test_failed' || auth.last_test?.status === 'cdp_unavailable');
+        const testText = authTestText(auth);
+        const actionHtml = platform.auth_required
+          ? `<div class="platform-actions">
+              <button class="mini-btn secondary" data-platform-test="${platform.id}" ${canTest ? '' : 'disabled'}>测试授权</button>
+              <button class="mini-btn ${auth.session_ready ? 'secondary' : ''}" data-platform-authorize="${platform.id}" data-force-reopen="${forceReopen ? 'true' : 'false'}" ${canOpen ? '' : 'disabled'}>${buttonLabel}</button>
+            </div>`
+          : '';
+        const card = document.createElement('div');
+        card.className = 'platform-card';
+        card.innerHTML = `
+          <div class="platform-head">
+            <span class="platform-name">${platform.label}</span>
+            ${authorizationBadge(auth)}
+          </div>
+          <div class="platform-meta">${platform.auth_required ? '需要本机授权会话' : '当前无需授权会话'}</div>
+          <div class="platform-meta" style="margin-top: 6px;">${platform.notes || ''}</div>
+          ${testText ? `<div class="platform-meta" style="margin-top: 6px;">${testText}</div>` : ''}
+          ${actionHtml}
+        `;
+        platformGrid.appendChild(card);
+      }
+      for (const button of platformGrid.querySelectorAll('button[data-platform-authorize]')) {
+        button.addEventListener('click', () => authorizePlatform(button.dataset.platformAuthorize, button.dataset.forceReopen === 'true'));
+      }
+      for (const button of platformGrid.querySelectorAll('button[data-platform-test]')) {
+        button.addEventListener('click', () => testPlatformAuthorization(button.dataset.platformTest));
+      }
+    }
+
+    async function loadPlatforms() {
+      const url = firstUrl(message.value);
+      refreshPlatformsBtn.disabled = true;
+      try {
+        const response = await fetch(intakeEndpoint(url), { method: 'GET' });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '读取失败');
+        }
+        renderPlatforms(payload);
+        return payload;
+      } catch (error) {
+        routePlatform.textContent = '平台状态读取失败';
+        routeBadge.textContent = '失败';
+        routeBadge.className = 'badge warn';
+        routeStrategy.textContent = localBackendRestartHint(error);
+        return null;
+      } finally {
+        refreshPlatformsBtn.disabled = false;
+      }
+    }
+
+    function platformFromState(platformId) {
+      return (platformState.platforms || []).find(platform => platform.id === platformId) || null;
+    }
+
+    function stopAuthorizationPolling(platformId) {
+      const timer = authorizationPollTimers.get(platformId);
+      if (timer) clearInterval(timer);
+      authorizationPollTimers.delete(platformId);
+    }
+
+    function startAuthorizationPolling(platformId, timeoutSec = 90) {
+      stopAuthorizationPolling(platformId);
+      const deadline = Date.now() + Math.max(5, Number(timeoutSec || 90)) * 1000 + 3000;
+      const tick = async () => {
+        const payload = await loadPlatforms();
+        if (!payload) return;
+        const platform = platformFromState(platformId);
+        const auth = platform?.authorization || {};
+        const lastStatus = auth.last_test?.status || '';
+        if (auth.state === 'verified' || auth.authorized) {
+          stopAuthorizationPolling(platformId);
+          routeStrategy.textContent = `${platform?.label || '平台'} 授权可用；授权窗口已自动关闭。`;
+          return;
+        }
+        if (lastStatus === 'authorization_timeout') {
+          stopAuthorizationPolling(platformId);
+          routeStrategy.textContent = `${platform?.label || '平台'} 90 秒内未检测到授权成功，授权窗口已自动关闭。`;
+          return;
+        }
+        if (Date.now() >= deadline) {
+          stopAuthorizationPolling(platformId);
+          routeStrategy.textContent = `${platform?.label || '平台'} 授权等待已结束，请刷新状态后重试。`;
+          return;
+        }
+        routeStrategy.textContent = `${platform?.label || '平台'} 授权窗口监控中：成功后自动关闭，90 秒未授权也会关闭。`;
+      };
+      tick();
+      authorizationPollTimers.set(platformId, setInterval(tick, 3000));
+    }
+
+    async function authorizePlatform(platformId, forceReopen = false) {
+      const url = firstUrl(message.value);
+      routeStrategy.textContent = forceReopen ? '正在重新打开授权窗口' : '正在打开授权窗口';
+      try {
+        const requestBody = url ? { url } : {};
+        if (forceReopen) requestBody.force_reopen = true;
+        const response = await fetch(authorizeEndpoint(platformId), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '授权窗口打开失败');
+        }
+        const closedCount = Number(payload.profile_browser_cleanup?.closed_processes || 0);
+        const closedText = closedCount ? `；已关闭旧授权窗口 ${closedCount} 个` : '';
+        routeStrategy.textContent = `${payload.next_step || '授权窗口已打开'}${closedText}`;
+        await loadPlatforms();
+        if (payload.auto_close?.enabled) {
+          startAuthorizationPolling(platformId, payload.auto_close.timeout_sec || 90);
+        }
+      } catch (error) {
+        routeStrategy.textContent = `授权失败：${localBackendRestartHint(error)}`;
+      }
+    }
+
+    async function testPlatformAuthorization(platformId) {
+      const url = firstUrl(message.value);
+      routeStrategy.textContent = '正在测试授权会话';
+      for (const button of platformGrid.querySelectorAll(`[data-platform-test="${platformId}"], [data-platform-authorize="${platformId}"]`)) {
+        button.disabled = true;
+      }
+      try {
+        const response = await fetch(authorizationTestEndpoint(platformId), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(url ? { url } : {}),
+        });
+        const payload = await response.json();
+        if (!response.ok) {
+          throw new Error(payload.detail || payload.error || '授权测试失败');
+        }
+        routeStrategy.textContent = payload.next_step || `授权测试：${payload.label || payload.status || '完成'}`;
+        await loadPlatforms();
+      } catch (error) {
+        routeStrategy.textContent = `授权测试失败：${localBackendRestartHint(error)}`;
+        await loadPlatforms();
+      }
+    }
+
+    async function loadConfig() {
+      setConfigStatus('正在读取配置');
+      try {
+        const response = await fetch(configEndpoint(), { method: 'GET' });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '读取失败');
+        }
+        renderConfig(payload);
+        setConfigStatus('配置已读取', payload.provider?.api_key_present ? 'ok' : 'warn');
+      } catch (error) {
+        setConfigStatus(`配置读取失败：${error}`, 'bad');
+      }
+    }
+
+    async function loadStorageConfig() {
+      setStorageStatus('正在读取存储配置');
+      try {
+        const response = await fetch(storageEndpoint(), { method: 'GET' });
+        const payload = await response.json();
+        if (!response.ok || !payload.ok) {
+          throw new Error(payload.detail || payload.error || '读取失败');
+        }
+        renderStorageConfig(payload);
+        setStorageStatus('存储配置已读取', payload.provider?.api_key_present ? 'ok' : 'warn');
+      } catch (error) {
+        storagePresets = storagePresets.length ? storagePresets : [...defaultStoragePresets];
+        renderStorageProviderSelect('lucas_database');
+        applyStoragePreset('lucas_database', true);
+        storageKeyState.textContent = 'key: unknown';
+        databaseTargets = [defaultDatabaseTarget(0)];
+        renderDatabaseTargets();
+        updateDatabaseEntryButton();
+        renderStorageTargets({ storage_targets: ['lucas_database'], auto_ingest_enabled: true });
+        setStorageStatus(`读取失败：${localBackendRestartHint(error)}`, 'bad');
+      }
+    }
+
+    async function saveStorageConfig() {
+      const nextDatabaseTargets = collectDatabaseTargets();
+      const selectedDatabaseTargetIds = nextDatabaseTargets
+        .filter((target) => target.selected)
+        .map((target) => target.id);
+      if (autoIngestToggle.checked && !targetSiyuan.checked && !targetBrain.checked) {
+        setStorageStatus('自动入库至少需要勾选一个写入目标', 'warn');
+        return;
+      }
+      const payload = {
+        provider_id: storageProviderSelect.value,
+        base_url: storageBaseUrl.value.trim(),
+        endpoint: storageProviderEndpoint.value.trim(),
+        storage_write_enabled: autoIngestToggle.checked,
+        auto_ingest_enabled: autoIngestToggle.checked,
+        storage_targets: selectedStorageTargets(),
+        database_targets: nextDatabaseTargets,
+        selected_database_target_ids: selectedDatabaseTargetIds,
+      };
+      if (storageApiKey.value.trim()) payload.api_key = storageApiKey.value.trim();
+      saveStorageBtn.disabled = true;
+      setStorageStatus('正在保存存储配置');
+      try {
+        const response = await fetch(storageEndpoint(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.detail || data.error || '保存失败');
+        }
+        databaseTargets = nextDatabaseTargets;
+        renderStorageConfig(data);
+        setStorageStatus('存储配置已保存', data.provider?.api_key_present ? 'ok' : 'warn');
+      } catch (error) {
+        setStorageStatus(`保存失败：${localBackendRestartHint(error)}`, 'bad');
+      } finally {
+        saveStorageBtn.disabled = false;
+      }
+    }
+
+    async function testStorageConnection(providerId = storageProviderSelect.value) {
+      const isCurrentProvider = providerId === storageProviderSelect.value;
+      const providerConfig = storageProviderConfigById(providerId);
+      const preset = storageProviderById(providerId);
+      const brainTarget = providerId === 'lucas_database' ? selectedBrainTargetConfig() : null;
+      const payload = {
+        provider_id: providerId,
+        base_url: isCurrentProvider
+          ? storageBaseUrl.value.trim()
+          : (brainTarget?.base_url || providerConfig.base_url || preset?.default_base_url || ''),
+        endpoint: isCurrentProvider
+          ? storageProviderEndpoint.value.trim()
+          : (brainTarget?.endpoint || providerConfig.endpoint || preset?.endpoint || ''),
+      };
+      if (providerId === 'lucas_database' && brainTarget) {
+        payload.base_url = brainTarget.base_url || payload.base_url;
+        payload.endpoint = brainTarget.endpoint || payload.endpoint;
+      }
+      if (isCurrentProvider && storageApiKey.value.trim()) payload.api_key = storageApiKey.value.trim();
+
+      const buttons = [testStorageBtn, testSiyuanStorageBtn, testBrainStorageBtn].filter(Boolean);
+      buttons.forEach((button) => { button.disabled = true; });
+      setStorageStatus(`正在测试 ${preset?.label || providerId} API`);
+      storageTestJson.textContent = JSON.stringify({ request: { ...payload, api_key: payload.api_key ? '<hidden>' : undefined } }, null, 2);
+      try {
+        const response = await fetch(storageTestEndpoint(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        storageTestJson.textContent = JSON.stringify(data, null, 2);
+        updateTargetStatusFromTest(providerId, data);
+        const okText = providerId !== 'siyuan' && data.status === 'connected_schema_rejected'
+          ? 'AntTrail Database API 已连通，token 通过，测试 payload 被正确拒绝'
+          : `${preset?.label || providerId} API ${data.ok ? '已连通' : '测试失败'}`;
+        setStorageStatus(data.ok ? okText : `测试失败：${data.error || data.status || 'unknown'}`, data.ok ? 'ok' : 'bad');
+      } catch (error) {
+        const data = { ok: false, stage: 'request_failed', error: String(error) };
+        storageTestJson.textContent = JSON.stringify(data, null, 2);
+        setStorageStatus(`测试失败：${localBackendRestartHint(error)}`, 'bad');
+      } finally {
+        buttons.forEach((button) => { button.disabled = false; });
+      }
+    }
+
+    function buildSubmitPayload() {
+      return {
+        title: submitTitle.value.trim(),
+        content: submitContent.value.trim(),
+        tags: submitTags.value.split(/[;；,，\n]/).map((item) => item.trim()).filter(Boolean),
+        source_url: submitSourceUrl.value.trim(),
+        source_type: 'manual_text',
+        actor: 'minimal_chat_ui',
+      };
+    }
+
+    async function submitFormCard() {
+      const payload = buildSubmitPayload();
+      submitFormBtn.disabled = true;
+      setSubmitStatus('正在提交');
+      submitResultJson.textContent = JSON.stringify({ request: payload }, null, 2);
+      try {
+        const response = await fetch(submitApiUrl.value.trim(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        submitResultJson.textContent = JSON.stringify(data, null, 2);
+        setSubmitStatus(data.ok ? '测试卡已发送到 AntTrail' : `测试失败：${data.error || data.stage || 'unknown'}`, data.ok ? 'ok' : 'bad');
+      } catch (error) {
+        const data = { ok: false, stage: 'request_failed', error: String(error) };
+        submitResultJson.textContent = JSON.stringify(data, null, 2);
+        setSubmitStatus(`测试失败：${localBackendRestartHint(error)}`, 'bad');
+      } finally {
+        submitFormBtn.disabled = false;
+      }
+    }
+
+    async function saveConfig() {
+      const payload = buildConfigPayload(true);
+      saveConfigBtn.disabled = true;
+      setConfigStatus('正在保存配置');
+      try {
+        const response = await fetch(configEndpoint(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.detail || data.error || '保存失败');
+        }
+        renderConfig(data);
+        setConfigStatus('配置已保存', data.provider?.api_key_present ? 'ok' : 'warn');
+      } catch (error) {
+        setConfigStatus(`配置保存失败：${error}`, 'bad');
+      } finally {
+        saveConfigBtn.disabled = false;
+      }
+    }
+
+    async function testConfig() {
+      const payload = buildConfigPayload(true);
+      testConfigBtn.disabled = true;
+      setConfigStatus('正在测试模型连接');
+      configTestJson.textContent = JSON.stringify({ request: { ...payload, api_key: payload.api_key ? '***' : undefined } }, null, 2);
+      try {
+        const response = await fetch(`${aiApiBase()}/api/ai/test`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, timeout_sec: 20 }),
+        });
+        const data = await response.json();
+        configTestJson.textContent = JSON.stringify(data, null, 2);
+        setConfigStatus(data.ok ? '模型连接成功' : `模型连接失败：${data.error || data.status || 'unknown'}`, data.ok ? 'ok' : 'bad');
+      } catch (error) {
+        const payload = { ok: false, status: 'request_failed', error: String(error) };
+        configTestJson.textContent = JSON.stringify(payload, null, 2);
+        setConfigStatus(`模型连接失败：${error}`, 'bad');
+      } finally {
+        testConfigBtn.disabled = false;
+      }
+    }
+
+    function renderModelOptions(models) {
+      modelOptions.innerHTML = '';
+      for (const model of models || []) {
+        const option = document.createElement('option');
+        option.value = model;
+        modelOptions.appendChild(option);
+      }
+      if ((!modelName.value || !models.includes(modelName.value)) && models.length) {
+        modelName.value = models[0];
+      }
+    }
+
+    async function loadModels() {
+      const payload = buildConfigPayload(true);
+      loadModelsBtn.disabled = true;
+      setConfigStatus('正在获取模型列表');
+      configTestJson.textContent = JSON.stringify({ request: { ...payload, api_key: payload.api_key ? '***' : undefined } }, null, 2);
+      try {
+        const response = await fetch(`${aiApiBase()}/api/ai/models`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...payload, timeout_sec: 20 }),
+        });
+        const data = await response.json();
+        configTestJson.textContent = JSON.stringify(data, null, 2);
+        if (!response.ok || !data.ok) {
+          throw new Error(data.detail || data.error || '获取失败');
+        }
+        renderModelOptions(data.models || []);
+        setConfigStatus(`已获取 ${data.model_count || 0} 个模型`, (data.model_count || 0) ? 'ok' : 'warn');
+      } catch (error) {
+        setConfigStatus(`获取模型列表失败：${error}`, 'bad');
+      } finally {
+        loadModelsBtn.disabled = false;
+      }
+    }
+
+    function recentConversationHistory(limit = 12) {
+      const conversation = activeConversation();
+      return (conversation.messages || [])
+        .slice(-limit)
+        .map((item) => ({
+          role: item.role === 'user' ? 'user' : 'assistant',
+          text: sanitizeConversationText(item.text, { dropPathLines: true }).slice(0, 1200),
+        }))
+        .filter((item) => item.text.trim());
+    }
+
+    function buildPayload() {
+      const agentConfig = readAgentConfig();
+      return {
+        channel: 'my_chat_app',
+        conversation_id: activeConversationId,
+        sender_id: 'lucas',
+        sender_name: agentConfig.display_name || 'Lucas',
+        message_type: 'text',
+        text: message.value,
+        metadata: {
+          source: 'minimal_chat_ui',
+          attachments: selectedAttachments,
+          conversation_history: recentConversationHistory(),
+          agent_timeout_sec: 120,
+          agent_max_tokens: 1200,
+          agent_display_name: agentConfig.display_name,
+          agent_temperature: agentConfig.temperature,
+          agent_system_prompt: agentConfig.system_prompt,
+        },
+      };
+    }
+
+    function stripGenericPathLine(text) {
+      return String(text || '-')
+        .split(/\r?\n/)
+        .filter((line) => {
+          const trimmed = line.trim();
+          return trimmed !== '路径：' && trimmed !== '路径:' && !trimmed.startsWith('路径：') && !trimmed.startsWith('路径:');
+        })
+        .join('\n') || '-';
+    }
+
+    function resetBrainFields(status = '-') {
+      setResultField('brainStatusVal', status);
+      setResultField('brainCardIdVal', '-');
+      setResultField('brainNodeIdVal', '-');
+      setResultField('brainPathVal', '-');
+    }
+
+    function extractBrainReceipt(result) {
+      if (!result || typeof result !== 'object') return null;
+      const direct = result.lucas_database_write_result
+        || result.brain_write_result
+        || result.write_lucas_database_result
+        || null;
+      if (direct && typeof direct === 'object' && Object.keys(direct).length) {
+        return {
+          ok: Boolean(direct.ok),
+          stage: direct.stage || '',
+          path: direct.path || direct.target_path || '',
+          cardId: direct.card_id || direct.id || '',
+          nodeId: direct.node_id || '',
+          error: direct.error || '',
+        };
+      }
+      const skippedReason = result.lucas_database_write_skipped_reason || result.brain_write_skipped_reason || '';
+      if (skippedReason || result.lucas_database_write_enabled === false) {
+        return {
+          ok: false,
+          stage: skippedReason || 'disabled_by_config',
+          path: '',
+          cardId: '',
+          nodeId: '',
+          error: result.error || '',
+        };
+      }
+      return null;
+    }
+
+    function brainStatusText(receipt) {
+      if (!receipt) return '未返回 AntTrail 回执';
+      if (receipt.ok) return 'written';
+      return receipt.stage || receipt.error || 'not_written';
+    }
+
+    function renderBrainReceipt(payload, jobResult = null) {
+      const baseReply = stripGenericPathLine(payload?.reply_text);
+      const receipt = extractBrainReceipt(jobResult)
+        || extractBrainReceipt(payload?.data?.result)
+        || extractBrainReceipt(payload);
+      if (!receipt) {
+        resetBrainFields(payload?.job_id ? '未返回 AntTrail 回执' : '-');
+        setResultField('replyVal', payload?.job_id ? `${baseReply}\nAntTrail：未返回写入回执` : baseReply);
+        return;
+      }
+
+      setResultField('brainStatusVal', brainStatusText(receipt));
+      setResultField('brainCardIdVal', receipt.cardId || '-');
+      setResultField('brainNodeIdVal', receipt.nodeId || '-');
+      setResultField('brainPathVal', receipt.path || '-');
+
+      if (receipt.ok) {
+        const lines = [baseReply, `AntTrail 路径：${receipt.path || '未返回'}`];
+        if (receipt.cardId) lines.push(`AntTrail card_id：${receipt.cardId}`);
+        if (receipt.nodeId) lines.push(`AntTrail node_id：${receipt.nodeId}`);
+        setResultField('replyVal', lines.join('\n'));
+      } else {
+        setResultField('replyVal', `${baseReply}\nAntTrail：未写入（${receipt.error || receipt.stage || '未返回原因'}）`);
+      }
+    }
+
+    function jobDetailEndpoint(jobId) {
+      try {
+        const url = new URL(apiUrl.value.trim(), window.location.href);
+        return `${url.origin}/api/jobs/${encodeURIComponent(jobId)}`;
+      } catch (error) {
+        return `/api/jobs/${encodeURIComponent(jobId)}`;
+      }
+    }
+
+    function realtimeChatEndpoint() {
+      try {
+        const url = new URL(apiUrl.value.trim(), window.location.href);
+        url.pathname = '/api/chat/messages/async';
+        url.search = '';
+        return url.toString();
+      } catch (error) {
+        return '/api/chat/messages/async';
+      }
+    }
+
+    function batchStatusEndpoint(batchId) {
+      try {
+        const url = new URL(apiUrl.value.trim(), window.location.href);
+        return `${url.origin}/api/chat/batches/${encodeURIComponent(batchId)}`;
+      } catch (error) {
+        return `/api/chat/batches/${encodeURIComponent(batchId)}`;
+      }
+    }
+
+    function shouldUseRealtimeQueue(payload, localQueueState) {
+      const payloadDryRun = payload?.dry_run ?? payload?.metadata?.dry_run;
+      if (payloadDryRun) return false;
+      return Boolean(localQueueState?.items?.some((item) => item?.item_type === 'url'));
+    }
+
+    function isRealtimeBatchResponse(payload) {
+      return Boolean(payload?.data?.async && payload?.data?.batch_id);
+    }
+
+    function realtimeBatchIsRunning(payload) {
+      const queue = payload?.data?.queue;
+      if (!queue) return false;
+      return Number(queue.unfinished || 0) > 0 || String(payload?.status || '') === 'batch_running';
+    }
+
+    function wait(ms) {
+      return new Promise((resolve) => window.setTimeout(resolve, ms));
+    }
+
+    async function pollRealtimeBatch(initialPayload, fallbackState = null) {
+      const batchId = initialPayload?.data?.batch_id;
+      if (!batchId) return initialPayload;
+      let latest = initialPayload;
+      let pollDelay = 900;
+      while (isRealtimeBatchResponse(latest) && realtimeBatchIsRunning(latest)) {
+        await wait(pollDelay);
+        const response = await fetch(batchStatusEndpoint(batchId), { method: 'GET' });
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          data = { ok: false, status: 'invalid_json', error: text };
+        }
+        if (!response.ok) {
+          throw new Error(data.detail || data.error || '批次状态读取失败');
+        }
+        latest = data;
+        const queueState = normalizeQueueFromResponse(latest, fallbackState);
+        if (queueState) {
+          upsertTaskQueueBatch(queueState);
+        }
+        renderResult(latest);
+        pollDelay = Math.min(1400, pollDelay + 100);
+      }
+      return latest;
+    }
+
+    async function refreshBrainReceipt(payload) {
+      if (!hasResultFields) return;
+      if (payload?.status === 'note_revision_request' || payload?.data?.revision_job) {
+        resetBrainFields('修订流程');
+        setResultField('replyVal', stripGenericPathLine(payload?.reply_text));
+        return;
+      }
+      const jobId = payload?.job_id || payload?.data?.result?.job_id;
+      if (!jobId) {
+        renderBrainReceipt(payload);
+        return;
+      }
+      setResultField('brainStatusVal', '读取中');
+      try {
+        const response = await fetch(jobDetailEndpoint(jobId), { method: 'GET' });
+        const data = await response.json();
+        if (!response.ok || !data.ok) {
+          throw new Error(data.detail || data.error || '读取失败');
+        }
+        renderBrainReceipt(payload, data.result || {});
+      } catch (error) {
+        resetBrainFields('读取失败');
+        setResultField('replyVal', `${stripGenericPathLine(payload?.reply_text)}\nAntTrail：写入位置读取失败`);
+      }
+    }
+
+    function renderResult(payload) {
+      updateResponsePreview(payload);
+      if (!hasResultFields) return;
+      setResultField('okVal', String(payload?.ok ?? '-'));
+      setResultField('statusVal', payload?.status ?? '-');
+      setResultField('jobIdVal', payload?.job_id ?? '-');
+      setResultField('handledByVal', payload?.handled_by ?? '-');
+      resetBrainFields(payload?.job_id ? '等待查询' : '-');
+      setResultField('replyVal', stripGenericPathLine(payload?.reply_text));
+      setResultField('errorVal', payload?.error ?? '-');
+    }
+
+    async function sendMessage() {
+      const payload = buildPayload();
+      const conversation = activeConversation();
+      const localQueueState = buildLocalQueueState(payload);
+      if (!payload.text.trim() && !selectedAttachments.length) {
+        return;
+      }
+      updateRequestPreview(payload);
+      setStatus('正在发送');
+      taskQueueManuallyHidden = false;
+      if (localQueueState) {
+        upsertTaskQueueBatch(localQueueState, { autoShow: true });
+      }
+      if (payload.text.trim()) {
+        const userMessage = { role: 'user', text: payload.text.trim(), time: nowTime() };
+        conversation.messages.push(userMessage);
+        conversation.time = userMessage.time;
+        conversation.date = '今天';
+        appendChatMessage('user', userMessage.text, userMessage.time);
+        updateActiveConversationTitle(userMessage.text);
+        message.value = '';
+        selectedAttachments = [];
+        fileUpload.value = '';
+        imageUpload.value = '';
+        saveConversationState();
+      }
+      try {
+        setStatus('处理中');
+        const useRealtimeQueue = shouldUseRealtimeQueue(payload, localQueueState);
+        const response = await fetch(useRealtimeQueue ? realtimeChatEndpoint() : apiUrl.value.trim(), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (error) {
+          data = { ok: false, status: 'invalid_json', error: text };
+        }
+        const responseQueueState = normalizeQueueFromResponse(data, localQueueState);
+        if (responseQueueState) {
+          upsertTaskQueueBatch(responseQueueState);
+        }
+        renderResult(data);
+        if (isRealtimeBatchResponse(data) && realtimeBatchIsRunning(data)) {
+          setStatus('处理中');
+          data = await pollRealtimeBatch(data, localQueueState);
+        }
+        await refreshBrainReceipt(data);
+        const assistantMessage = {
+          role: 'assistant',
+          text: data.reply_text || data.error || data.status || '已收到返回结果',
+          time: nowTime(),
+        };
+        conversation.messages.push(assistantMessage);
+        if (activeConversationId === conversation.id) {
+          appendChatMessage('assistant', assistantMessage.text, assistantMessage.time);
+        }
+        saveConversationState();
+        renderConversationList();
+        setStatus(data.ok ? '成功' : '失败', data.ok ? 'ok' : 'bad');
+      } catch (error) {
+        const errorPayload = { ok: false, status: 'request_failed', error: String(error) };
+        const responseQueueState = normalizeQueueFromResponse(errorPayload, localQueueState);
+        if (responseQueueState) {
+          upsertTaskQueueBatch(responseQueueState);
+        }
+        renderResult(errorPayload);
+        await refreshBrainReceipt(errorPayload);
+        const assistantMessage = {
+          role: 'assistant',
+          text: `请求失败：${localBackendRestartHint(error)}`,
+          time: nowTime(),
+        };
+        conversation.messages.push(assistantMessage);
+        if (activeConversationId === conversation.id) {
+          appendChatMessage('assistant', assistantMessage.text, assistantMessage.time);
+        }
+        saveConversationState();
+        renderConversationList();
+        setStatus('失败', 'bad');
+      }
+    }
+
+    let routeTimer = null;
+    message.addEventListener('input', () => {
+      updateRequestPreview(buildPayload());
+      window.clearTimeout(routeTimer);
+      routeTimer = window.setTimeout(loadPlatforms, 250);
+    });
+    message.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessage();
+      }
+    });
+    composerForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      sendMessage();
+    });
+    document.querySelectorAll('[data-open-drawer]').forEach((button) => {
+      button.addEventListener('click', () => openDrawer(button.dataset.section || 'route'));
+    });
+    document.querySelectorAll('[data-database-url]').forEach((button) => {
+      button.addEventListener('click', () => {
+        openDatabaseWebUrl(button.dataset.databaseUrl || 'http://127.0.0.1:5173/', { replaceCurrent: true });
+      });
+    });
+    wechatBridgeBtn.addEventListener('click', openWechatBridgeModal);
+    startWechatBridgeBtn.addEventListener('click', startWechatBridge);
+    rescanWechatBridgeBtn.addEventListener('click', () => startWechatBridge({ forceRelogin: true }));
+    openWechatQrBtn.addEventListener('click', () => {
+      const url = openWechatQrBtn.dataset.qrUrl || '';
+      if (url) window.open(url, '_blank', 'noopener,noreferrer');
+    });
+    refreshWechatBridgeBtn.addEventListener('click', loadWechatBridgeStatus);
+    stopWechatBridgeBtn.addEventListener('click', stopWechatBridge);
+    document.querySelectorAll('[data-close-wechat-bridge]').forEach((button) => {
+      button.addEventListener('click', closeWechatBridgeModal);
+    });
+    document.querySelectorAll('[data-close-drawer]').forEach((button) => {
+      button.addEventListener('click', closeDrawer);
+    });
+    document.querySelectorAll('[data-detail-tab]').forEach((button) => {
+      button.addEventListener('click', () => setDetailSection(button.dataset.detailTab || 'route'));
+    });
+    conversationList.addEventListener('click', (event) => {
+      const item = event.target.closest('.conversation-item');
+      if (!item) return;
+      const editInput = event.target.closest('[data-conversation-edit]');
+      if (editInput) {
+        event.stopPropagation();
+        return;
+      }
+      const action = event.target.closest('[data-conversation-action]');
+      if (action) {
+        event.preventDefault();
+        event.stopPropagation();
+        if (action.dataset.conversationAction === 'rename') {
+          startRenameConversation(item.dataset.conversation);
+        } else if (action.dataset.conversationAction === 'save-name') {
+          const input = item.querySelector('[data-conversation-edit]');
+          commitRenameConversation(item.dataset.conversation, input?.value || '');
+        } else if (action.dataset.conversationAction === 'cancel-name') {
+          cancelRenameConversation();
+        } else if (action.dataset.conversationAction === 'delete') {
+          deleteConversation(item.dataset.conversation);
+        }
+        return;
+      }
+      renderConversation(item.dataset.conversation);
+    });
+    conversationList.addEventListener('keydown', (event) => {
+      const input = event.target.closest('[data-conversation-edit]');
+      if (!input) return;
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        commitRenameConversation(input.dataset.conversationEdit, input.value);
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        cancelRenameConversation();
+      }
+    });
+    newChatBtn.addEventListener('click', createConversation);
+    clearHistoryBtn.addEventListener('click', clearAllConversations);
+    shareConversationBtn.addEventListener('click', shareConversation);
+    exportConversationBtn.addEventListener('click', exportConversation);
+    clearConversationBtn.addEventListener('click', clearCurrentConversation);
+    fileUploadBtn.addEventListener('click', () => fileUpload.click());
+    imageUploadBtn.addEventListener('click', () => imageUpload.click());
+    fileUpload.addEventListener('change', () => rememberAttachment(fileUpload.files?.[0], 'file'));
+    imageUpload.addEventListener('change', () => rememberAttachment(imageUpload.files?.[0], 'image'));
+    taskQueueToggleBtn.addEventListener('click', toggleTaskQueue);
+    taskQueueHideBtn.addEventListener('click', hideTaskQueue);
+    taskQueueExpandBtn.addEventListener('click', () => {
+      taskQueueExpanded = !taskQueueExpanded;
+      renderTaskQueue();
+    });
+    providerSelect.addEventListener('change', () => applyPreset(providerSelect.value, true));
+    storageProviderSelect.addEventListener('change', () => applyStoragePreset(storageProviderSelect.value, true));
+    addDatabaseTargetBtn.addEventListener('click', addDatabaseTarget);
+    databaseTargetList.addEventListener('click', (event) => {
+      const action = event.target.closest('[data-db-action]');
+      if (!action) return;
+      const row = event.target.closest('[data-database-target]');
+      if (!row) return;
+      const rows = Array.from(databaseTargetList.querySelectorAll('[data-database-target]'));
+      const rowIndex = rows.indexOf(row);
+      if (action.dataset.dbAction === 'open-page') {
+        databaseTargets = collectDatabaseTargets();
+        const target = databaseTargets[rowIndex] || defaultDatabaseTarget(rowIndex);
+        openDatabaseWebUrl(target.web_url || target.base_url || 'http://127.0.0.1:5173/');
+        return;
+      }
+      if (action.dataset.dbAction !== 'remove') return;
+      const id = row.dataset.databaseTarget;
+      databaseTargets = collectDatabaseTargets().filter((target) => target.id !== id);
+      renderDatabaseTargets();
+      updateDatabaseEntryButton();
+      renderIcons();
+    });
+    databaseTargetList.addEventListener('input', () => {
+      databaseTargets = collectDatabaseTargets();
+      updateDatabaseEntryButton();
+      updateRequestPreview(buildPayload());
+    });
+    saveAgentConfigBtn.addEventListener('click', saveAgentConfig);
+    resetAgentConfigBtn.addEventListener('click', resetAgentConfig);
+    [agentDisplayName, agentTemperature, agentSystemPrompt].forEach((input) => {
+      input.addEventListener('input', () => {
+        updateRequestPreview(buildPayload());
+        setAgentStatus('Agent 配置有未保存修改', 'warn');
+      });
+    });
+    saveConfigBtn.addEventListener('click', saveConfig);
+    saveStorageBtn.addEventListener('click', saveStorageConfig);
+    testStorageBtn.addEventListener('click', () => testStorageConnection(storageProviderSelect.value));
+    testSiyuanStorageBtn.addEventListener('click', () => testStorageConnection('siyuan'));
+    testBrainStorageBtn.addEventListener('click', () => testStorageConnection(brainTargetProviderId()));
+    autoIngestToggle.addEventListener('change', updateStorageTargetControls);
+    reloadStorageBtn.addEventListener('click', loadStorageConfig);
+    submitFormBtn.addEventListener('click', submitFormCard);
+    previewCacheClearBtn.addEventListener('click', () => clearMediaCache({ dry_run: true }));
+    clearCacheBtn.addEventListener('click', () => clearMediaCache({ dry_run: false }));
+    refreshPlatformsBtn.addEventListener('click', loadPlatforms);
+    loadModelsBtn.addEventListener('click', loadModels);
+    testConfigBtn.addEventListener('click', testConfig);
+    reloadConfigBtn.addEventListener('click', loadConfig);
+    sendBtn.addEventListener('click', sendMessage);
+    renderTaskQueue();
+    renderIcons();
+    renderConversationList();
+    renderConversation(activeConversationId);
+    renderAgentConfig();
+    updateDatabaseEntryButton();
+    updateRequestPreview(buildPayload());
+    loadPlatforms();
+    loadConfig();
+    loadStorageConfig();
+  </script>
+</body>
+</html>

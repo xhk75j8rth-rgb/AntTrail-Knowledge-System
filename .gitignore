@@ -1,0 +1,50 @@
+# Dependencies
+**/node_modules/
+**/.venv/
+**/.venv-bge-m3/
+
+# Build output
+**/dist/
+**/dist-electron/
+**/release/
+**/*.tsbuildinfo
+
+# Local runtime data
+**/runtime/
+runtime-test/
+runtime-restart-logs/
+**/*.log
+**/*.pid
+
+# Local databases and attachments
+**/data/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+**/*.sqlite
+
+# Secrets and machine-local config
+**/.env
+**/*.local.json
+intake-control/config/link_pipeline.json
+
+# Vendored or copied third-party packages
+wechat-bridge/vendor/
+
+# Python caches
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.pytest_cache/
+**/.mypy_cache/
+
+# Agent/development-only memory
+AGENTS.md
+**/AGENTS.md
+**/AGENT_*.md
+**/.agents/
+**/docs/HANDOFF.md
+
+# OS/editor noise
+.DS_Store
+Thumbs.db

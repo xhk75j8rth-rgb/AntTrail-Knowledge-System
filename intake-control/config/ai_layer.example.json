@@ -1,0 +1,20 @@
+{
+  "active_provider": "deepseek_compatible",
+  "providers": {
+    "deepseek_compatible": {
+      "base_url": "https://api.deepseek.com",
+      "model": "deepseek-chat",
+      "protocol": "openai_compatible"
+    },
+    "openai": {
+      "base_url": "https://api.openai.com/v1",
+      "model": "gpt-4o-mini",
+      "protocol": "openai_compatible"
+    },
+    "anthropic": {
+      "base_url": "https://api.anthropic.com/v1",
+      "model": "claude-3-5-sonnet-latest",
+      "protocol": "anthropic_messages"
+    }
+  }
+}

@@ -1,0 +1,5 @@
+name: lucas_retrieval
+version: 0.1.0
+description: Retrieve grounded context from Lucas Database Agent Retrieve API.
+provides_tools:
+  - lucas_retrieve
