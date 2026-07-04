@@ -39,6 +39,9 @@ def _ai_status(runner_env: Mapping[str, str] | None) -> tuple[dict[str, Any], li
     base_url_present = bool(_clean(config.base_url)) or config.protocol == "mock"
     model_present = bool(_clean(config.model)) or config.protocol == "mock"
     configured = config.protocol == "mock" or (api_key_present and base_url_present and model_present)
+    api_key_source = config.api_key_source
+    if not api_key_source and _env_present(runner_env, config.api_key_env):
+        api_key_source = f"runner_env:{config.api_key_env}"
     status = {
         "provider_id": config.provider_id,
         "label": config.label,
@@ -47,12 +50,15 @@ def _ai_status(runner_env: Mapping[str, str] | None) -> tuple[dict[str, Any], li
         "configured": configured,
         "api_key_present": api_key_present,
         "api_key_env": config.api_key_env,
+        "api_key_source": api_key_source,
         "base_url_present": base_url_present,
         "base_url_label": config.base_url,
         "model": config.model,
         "supports_vision": config.supports_vision,
         "supports_json_mode": config.supports_json_mode,
-        "status": "configured" if configured else "not_configured",
+        "connection_tested": False,
+        "connection_status": "not_tested",
+        "status": "configured_not_tested" if configured else "not_configured",
         "error": "",
     }
     warnings: list[dict[str, Any]] = []

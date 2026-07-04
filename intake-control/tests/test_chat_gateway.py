@@ -311,6 +311,42 @@ class ChatGatewayTests(unittest.TestCase):
         self.assertIn("lucas_database_api_key_missing", codes)
         self.assertFalse(payload["used_mcp"])
 
+    def test_system_status_does_not_report_model_connected_from_env_key(self) -> None:
+        root = Path(self._tmpdir.name)
+        storage_path = root / "storage.local.json"
+        storage_env_path = root / ".env"
+        pipeline_path = root / "link_pipeline.json"
+        storage_path.write_text(json.dumps({
+            "active_provider": "lucas_database",
+            "providers": {
+                "lucas_database": {
+                    "base_url": "http://127.0.0.1:8765",
+                    "endpoint": "/api/cards/ingest",
+                },
+            },
+        }, ensure_ascii=False), encoding="utf-8")
+        storage_env_path.write_text("LUCAS_DB_API_KEY=test-local-db-key\n", encoding="utf-8")
+        pipeline_path.write_text(json.dumps({
+            "runtime_dir": "runtime/jobs",
+            "storage_targets": ["lucas_database"],
+        }, ensure_ascii=False), encoding="utf-8")
+        os.environ["AI_LAYER_PROVIDER"] = "deepseek_compatible"
+        os.environ["DEEPSEEK_API_KEY"] = "test-deepseek-env-key"
+        os.environ["LUCAS_STORAGE_CONFIG_PATH"] = str(storage_path)
+        os.environ["LUCAS_STORAGE_ENV_PATH"] = str(storage_env_path)
+        os.environ["LUCAS_LINK_PIPELINE_CONFIG_PATH"] = str(pipeline_path)
+        client = TestClient(app)
+
+        response = client.get("/api/system/status")
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["ai"]["configured"])
+        self.assertEqual(payload["ai"]["api_key_source"], "env:DEEPSEEK_API_KEY")
+        self.assertFalse(payload["ai"]["connection_tested"])
+        self.assertEqual(payload["ai"]["connection_status"], "not_tested")
+        self.assertEqual(payload["ai"]["status"], "configured_not_tested")
+
     def test_plain_douyin_url_is_extracted_from_markdown_link(self) -> None:
         urls = extract_urls("[https://v.douyin.com/xxx/](https://v.douyin.com/xxx/)")
 

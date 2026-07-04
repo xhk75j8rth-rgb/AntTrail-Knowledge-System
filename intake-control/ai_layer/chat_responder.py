@@ -218,7 +218,9 @@ class ChatResponder:
                 f"label={ai_provider.get('label') or 'unknown'}；"
                 f"model={ai_provider.get('model') or 'unknown'}；"
                 f"base_url={ai_provider.get('base_url') or 'unknown'}；"
-                f"api_key_present={'yes' if ai_provider.get('api_key_present') else 'no'}。"
+                f"api_key_present={'yes' if ai_provider.get('api_key_present') else 'no'}；"
+                f"api_key_source={ai_provider.get('api_key_source') or 'unknown'}；"
+                f"connection_status={ai_provider.get('connection_status') or 'not_tested'}。"
             )
         else:
             lines.append(f"AI配置：读取失败（{ai.get('error') or 'unknown'}）。")
@@ -653,13 +655,19 @@ class ChatResponder:
                 error=str(ai.get("error") or "ai_config_unavailable"),
             )
         provider = ai.get("provider") if isinstance(ai.get("provider"), dict) else {}
-        key = "已配置" if provider.get("api_key_present") else f"缺少 {provider.get('api_key_env') or 'API Key'}"
+        if provider.get("api_key_present"):
+            source = provider.get("api_key_source") or "未知来源"
+            key = f"已检测到（来源：{source}）"
+        else:
+            key = f"缺少 {provider.get('api_key_env') or 'API Key'}"
+        connection = provider.get("connection_status") or "not_tested"
         reply = (
             "我按当前模型配置看到：\n"
             f"- 提供商：{provider.get('label') or ai.get('active_provider') or 'unknown'}。\n"
             f"- 模型：{provider.get('model') or '未配置'}。\n"
             f"- Base URL：{provider.get('base_url') or '未配置'}。\n"
-            f"- Key 状态：{key}。"
+            f"- Key 状态：{key}。\n"
+            f"- 连接测试：{connection}。只有点击“测试连接”成功后，才能认为模型 API 真的连通。"
         )
         return ChatResponse(
             ok=True,

@@ -760,6 +760,19 @@ class AILayerTests(unittest.TestCase):
         self.assertEqual(config["active_provider"], "deepseek_compatible")
         self.assertEqual(config["provider"]["base_url"], "https://api.deepseek.com")
         self.assertFalse(config["provider"]["api_key_present"])
+        self.assertFalse(config["provider"]["connection_tested"])
+        self.assertEqual(config["provider"]["connection_status"], "not_tested")
+
+    def test_public_ai_config_reports_env_key_source_without_claiming_connection(self) -> None:
+        os.environ["DEEPSEEK_API_KEY"] = "test-deepseek-env-key"
+
+        config = get_public_ai_config()
+
+        provider = config["provider"]
+        self.assertTrue(provider["api_key_present"])
+        self.assertEqual(provider["api_key_source"], "env:DEEPSEEK_API_KEY")
+        self.assertFalse(provider["connection_tested"])
+        self.assertEqual(provider["connection_status"], "not_tested")
 
     def test_compose_card_with_real_provider_path_is_structured_failure_without_key(self) -> None:
         input_payload = {

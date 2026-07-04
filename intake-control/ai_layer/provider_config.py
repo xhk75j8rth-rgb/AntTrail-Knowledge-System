@@ -37,6 +37,7 @@ class ProviderRuntimeConfig:
     model: str
     api_key: str = ""
     api_key_env: str = ""
+    api_key_source: str = ""
     supports_vision: bool = False
     supports_json_mode: bool = True
     notes: str = ""
@@ -51,6 +52,9 @@ class ProviderRuntimeConfig:
             "api_key_env": self.api_key_env,
             "api_key_present": bool(self.api_key),
             "api_key_last4": self.api_key[-4:] if self.api_key else "",
+            "api_key_source": self.api_key_source,
+            "connection_tested": False,
+            "connection_status": "not_tested",
             "supports_vision": self.supports_vision,
             "supports_json_mode": self.supports_json_mode,
             "notes": self.notes,
@@ -248,14 +252,21 @@ def resolve_provider_config(provider_id: str | None = None) -> ProviderRuntimeCo
     global_base_url = os.environ.get("AI_LAYER_BASE_URL") if env_selected else ""
     global_model = os.environ.get("AI_LAYER_MODEL") if env_selected else ""
 
-    api_key = (
-        data.get("api_key")
-        or os.environ.get(f"{env_prefix}_API_KEY")
-        or global_api_key
-        or os.environ.get(preset.api_key_env)
-        or (os.environ.get("DEEPSEEK_API_KEY") if legacy_deepseek else "")
-        or ""
-    )
+    api_key = ""
+    api_key_source = ""
+    api_key_candidates = [
+        (data.get("api_key"), "local_config"),
+        (os.environ.get(f"{env_prefix}_API_KEY"), f"env:{env_prefix}_API_KEY"),
+        (global_api_key, "env:AI_LAYER_API_KEY"),
+        (os.environ.get(preset.api_key_env), f"env:{preset.api_key_env}"),
+    ]
+    if legacy_deepseek:
+        api_key_candidates.append((os.environ.get("DEEPSEEK_API_KEY"), "env:DEEPSEEK_API_KEY"))
+    for candidate, source in api_key_candidates:
+        if str(candidate or "").strip():
+            api_key = str(candidate)
+            api_key_source = source
+            break
     base_url = (
         data.get("base_url")
         or os.environ.get(f"{env_prefix}_BASE_URL")
@@ -278,6 +289,7 @@ def resolve_provider_config(provider_id: str | None = None) -> ProviderRuntimeCo
         model=str(model),
         api_key=str(api_key),
         api_key_env=preset.api_key_env,
+        api_key_source=api_key_source,
         supports_vision=preset.supports_vision,
         supports_json_mode=preset.supports_json_mode,
         notes=preset.notes,
@@ -347,6 +359,7 @@ def build_runtime_config_from_payload(update: dict[str, Any]) -> ProviderRuntime
     base_url = str(update.get("base_url") or saved.base_url or preset.default_base_url).strip().rstrip("/")
     model = str(update.get("model") or saved.model or preset.default_model).strip()
     api_key = str(update.get("api_key") or saved.api_key or "").strip()
+    api_key_source = "request" if str(update.get("api_key") or "").strip() else saved.api_key_source
     if not base_url:
         raise ValueError("base_url is required")
     if not model:
@@ -359,6 +372,7 @@ def build_runtime_config_from_payload(update: dict[str, Any]) -> ProviderRuntime
         model=model,
         api_key=api_key,
         api_key_env=preset.api_key_env,
+        api_key_source=api_key_source,
         supports_vision=preset.supports_vision,
         supports_json_mode=preset.supports_json_mode,
         notes=preset.notes,

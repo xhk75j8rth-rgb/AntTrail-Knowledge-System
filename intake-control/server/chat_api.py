@@ -1026,10 +1026,13 @@ def post_ai_test(payload: dict[str, Any]) -> dict[str, Any]:
         system_prompt="你是一个 API 连通性测试助手。",
         metadata={"timeout_sec": timeout_sec, "max_tokens": 16},
     )
+    provider_payload = config.masked()
+    provider_payload["connection_tested"] = True
+    provider_payload["connection_status"] = "connected" if result.ok else "failed"
     return {
         "ok": result.ok,
         "status": "connected" if result.ok else "failed",
-        "provider": config.masked(),
+        "provider": provider_payload,
         "reply_text": result.text[:200],
         "error": result.error,
         "raw_usage": result.raw_usage,

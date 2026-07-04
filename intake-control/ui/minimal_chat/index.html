@@ -4135,6 +4135,18 @@
       protocolState.textContent = `protocol: ${preset.protocol}`;
     }
 
+    function formatApiKeyState(provider) {
+      const keyEnv = provider.api_key_env || 'env/local';
+      if (!provider.api_key_present) return `key: missing (${keyEnv})`;
+      const source = String(provider.api_key_source || '');
+      const last4 = provider.api_key_last4 ? ` ...${provider.api_key_last4}` : '';
+      if (source.startsWith('env:')) return `key: detected from ${source.slice(4)}${last4}; connection not tested`;
+      if (source.startsWith('runner_env:')) return `key: detected from runner env ${source.slice('runner_env:'.length)}${last4}; connection not tested`;
+      if (source === 'local_config') return `key: saved locally${last4}; connection not tested`;
+      if (source === 'request') return `key: entered for this request${last4}; connection not tested`;
+      return `key: present${last4}; connection not tested`;
+    }
+
     function renderConfig(payload) {
       providerPresets = payload.presets || providerPresets;
       const provider = payload.provider || {};
@@ -4143,7 +4155,7 @@
       baseUrl.value = provider.base_url || providerById(providerSelect.value)?.default_base_url || '';
       modelName.value = provider.model || providerById(providerSelect.value)?.default_model || '';
       apiKey.value = '';
-      keyState.textContent = provider.api_key_present ? `key: present ...${provider.api_key_last4 || '****'}` : `key: missing (${provider.api_key_env || 'env/local'})`;
+      keyState.textContent = formatApiKeyState(provider);
       visionState.textContent = `vision: ${provider.supports_vision ? 'supported' : 'text-only/unknown'}`;
       protocolState.textContent = `protocol: ${provider.protocol || 'unknown'}`;
       providerNote.textContent = provider.notes || providerById(providerSelect.value)?.notes || '';
@@ -4448,7 +4460,10 @@
           throw new Error(payload.detail || payload.error || '读取失败');
         }
         renderConfig(payload);
-        setConfigStatus('配置已读取', payload.provider?.api_key_present ? 'ok' : 'warn');
+        setConfigStatus(
+          payload.provider?.api_key_present ? '配置已读取：检测到 Key，尚未测试连接' : '配置已读取：缺少 API Key',
+          'warn',
+        );
       } catch (error) {
         setConfigStatus(`配置读取失败：${error}`, 'bad');
       }
@@ -4614,7 +4629,10 @@
           throw new Error(data.detail || data.error || '保存失败');
         }
         renderConfig(data);
-        setConfigStatus('配置已保存', data.provider?.api_key_present ? 'ok' : 'warn');
+        setConfigStatus(
+          data.provider?.api_key_present ? '配置已保存：尚未测试连接' : '配置已保存：缺少 API Key',
+          'warn',
+        );
       } catch (error) {
         setConfigStatus(`配置保存失败：${error}`, 'bad');
       } finally {
