@@ -71,6 +71,13 @@ Or start both in hidden PowerShell windows:
 - Intake UI/API can start and show configuration/status screens.
 - Basic chat and dry-run link flows can run without private keys.
 
+## Project Status
+
+AntTrail is an early local-first source project. It is useful today, but some advanced workflows still depend on optional local tools, API keys, model setup, and further quality improvements.
+
+- Known limitations: `docs/KNOWN_LIMITATIONS.md`
+- Roadmap: `docs/ROADMAP.md`
+
 ## Optional Features
 
 Some workflows require local tools or API keys:
