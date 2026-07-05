@@ -1537,8 +1537,6 @@ def should_run_douyin_web_image_ocr(
         return False
     if not config_bool(config, "douyin_web_image_ocr_on_low_material", True):
         return False
-    if material_quality.get("can_compose_formal"):
-        return False
     if meaningful_ocr_text_lines(ocr):
         return False
     if not (
@@ -1554,7 +1552,10 @@ def should_run_douyin_web_image_ocr(
         "input_missing",
         "ocr_failed",
     }
-    return bool(no_video_input or material_quality.get("needs_visual_enrichment"))
+    ocr_requested_without_video = bool(ocr.get("should_run_ocr") or ocr.get("force_ocr")) and no_video_input
+    if material_quality.get("can_compose_formal") and not ocr_requested_without_video:
+        return False
+    return bool(ocr_requested_without_video or no_video_input or material_quality.get("needs_visual_enrichment"))
 
 
 def format_media_signals(content: dict[str, Any]) -> str:

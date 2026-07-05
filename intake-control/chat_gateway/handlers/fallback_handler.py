@@ -23,6 +23,20 @@ def _metadata_int(metadata: dict, key: str, default: int, *, minimum: int, maxim
     return max(minimum, min(value, maximum))
 
 
+def _metadata_bool(metadata: dict, key: str, default: bool = False) -> bool:
+    value = metadata.get(key)
+    if isinstance(value, bool):
+        return value
+    if value is None:
+        return default
+    return str(value).strip().casefold() in {"1", "true", "yes", "on"}
+
+
+def _force_retrieval_from_metadata(metadata: dict) -> bool:
+    mode = str(metadata.get("retrieval_mode") or metadata.get("search_mode") or "").strip().casefold()
+    return _metadata_bool(metadata, "force_retrieval") or mode in {"knowledge_search", "database_search", "retrieval"}
+
+
 def _safe_slug(value: str, limit: int = 32) -> str:
     text = re.sub(r"[^0-9A-Za-z\u4e00-\u9fff_-]+", "-", str(value or "")).strip("-")
     return (text or "note-revision")[:limit].strip("-") or "note-revision"
@@ -109,11 +123,14 @@ def _revision_queue(revision_job: dict) -> dict:
 
 
 def handle(event: MessageEvent) -> HandlerResponse:
+    metadata = event.metadata if isinstance(event.metadata, dict) else {}
     reply = RESPONDER.respond(
         event.text,
-        conversation_history=event.metadata.get("conversation_history"),
-        timeout_sec=_metadata_int(event.metadata, "agent_timeout_sec", 60, minimum=1, maximum=180),
-        max_tokens=_metadata_int(event.metadata, "agent_max_tokens", 1200, minimum=64, maximum=4096),
+        conversation_history=metadata.get("conversation_history"),
+        timeout_sec=_metadata_int(metadata, "agent_timeout_sec", 60, minimum=1, maximum=180),
+        max_tokens=_metadata_int(metadata, "agent_max_tokens", 1200, minimum=64, maximum=4096),
+        force_retrieval=_force_retrieval_from_metadata(metadata),
+        retrieval_query=str(metadata.get("retrieval_query") or ""),
     )
     revision_job = None
     revision_queue = None
@@ -155,9 +172,6 @@ def handle(event: MessageEvent) -> HandlerResponse:
         data["retrieval"] = reply.data["retrieval"]
     if "retrieval_plan" in reply.data:
         data["retrieval_plan"] = reply.data["retrieval_plan"]
-    if "database_first_enforced" in reply.data:
-        data["database_first_enforced"] = reply.data["database_first_enforced"]
-
     return HandlerResponse(
         ok=reply.ok,
         reply_text=reply.reply_text,

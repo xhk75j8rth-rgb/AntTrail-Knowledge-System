@@ -6,8 +6,7 @@ Path: `intake-control/`
 
 Read first:
 
-- `AGENTS.md`
-- `.agents/skills/link-intake-classifier/SKILL.md`
+- `README.md`
 - `docs/INTAKE_SYSTEM_RULES.md`
 - `docs/CHAT_GATEWAY_ABSTRACTION.md`
 - `docs/LUCAS_DATABASE_SINK.md`
@@ -26,9 +25,6 @@ Path: `lucas-database/`
 
 Read first:
 
-- `AGENT_GUIDE.md`
-- `AGENT_MEMORY.md`
-- `AGENT_HANDOFF.md`
 - `README.md`
 - `docs/API.md`
 - `docs/DATA_MODEL.md`

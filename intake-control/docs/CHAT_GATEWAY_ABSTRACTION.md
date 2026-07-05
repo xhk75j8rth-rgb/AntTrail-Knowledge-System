@@ -76,7 +76,19 @@ MCP 边界：
 }
 ```
 
-普通无链接消息会进入 fallback 对话分支。普通知识型无链接消息必须先尝试 Lucas Database RAG：Chat Gateway 通过 HTTP 调用 Lucas Database `POST /api/agent/retrieve`，而不是通过 MCP。命中可靠上下文时，模型 prompt 会包含 `context.text`，回复应使用 `[Source n]` 引用证据；低置信、超时或不可用时，fallback 会确定性返回“没有可靠命中 / 检索不可用”，不会再让模型用通用常识补答案。问候、状态追问、配置问答和修订请求会跳过检索。
+普通无链接消息会进入 fallback 对话分支，并默认交给当前聊天模型自然回答。只有用户明确表达“查资料 / 检索 / 搜索 / 查知识库 / 查数据库 / 找笔记 / 有没有库内资料”等资料检索意图时，Chat Gateway 才通过 HTTP 调用 Lucas Database `POST /api/agent/retrieve`，而不是通过 MCP。命中可靠上下文时，模型 prompt 会包含 `context.text`，回复应使用 `[Source n]` 引用证据；低置信、超时或不可用时，检索状态会作为上下文交给模型自然说明，不再由 fallback 输出硬编码模板句。
+
+UI 若提供显式“知识搜索 / 数据库搜索”模式，可以在 `metadata` 中传：
+
+```json
+{
+  "retrieval_mode": "knowledge_search",
+  "force_retrieval": true,
+  "retrieval_query": "ai"
+}
+```
+
+该模式会把当前文本或 `retrieval_query` 当作检索词直接调用本地 Lucas Database / AntTrail `POST /api/agent/retrieve`，适合 `ai`、`GSAP` 这类短查询；普通聊天模式仍不强制查库。
 
 RAG 结果会透传到 `data.retrieval`：
 
@@ -99,7 +111,7 @@ RAG 结果会透传到 `data.retrieval`：
 }
 ```
 
-默认 RAG 超时窗口由 `LUCAS_CHAT_RAG_TIMEOUT_SEC` 控制；当前代码默认 45 秒，最大可配置到 120 秒，以适配本地 BGE-M3/sqlite-vec 冷启动。排查时应先看 `data.retrieval.attempted/ok/can_answer/status/error`，不要只凭自然语言回复判断是否查库。
+默认 RAG 超时窗口由 `LUCAS_CHAT_RAG_TIMEOUT_SEC` 控制；当前代码默认 45 秒，最大可配置到 120 秒，以适配本地 BGE-M3/sqlite-vec 冷启动。排查时应先看 `data.retrieval_plan.should_retrieve` 和 `data.retrieval.attempted/ok/can_answer/status/error`，不要只凭自然语言回复判断是否查库。
 
 若用户表达“调整/修改/不满意 + 已入库笔记/知识卡/卡片”，fallback 会返回 `status=note_revision_request`，并在 `data.revision` 中给出修订协商上下文：
 
@@ -213,7 +225,7 @@ debug CLI 会打印标准 `MessageEvent` 和 `HandlerResponse`。`--dry-run` 不
 .\wechat-bridge\scripts\start-lucas-wechat-gateway-bridge.ps1
 ```
 
-该桥把普通微信文本和链接都发送到 `POST /api/chat/messages/async`。普通文本进入 fallback / RAG / 数据库问答；链接进入异步入库队列并轮询最终回执。
+该桥把普通微信文本和链接都发送到 `POST /api/chat/messages/async`。普通文本进入 fallback 普通聊天；只有明确查资料意图才进入 RAG / 数据库问答；链接进入异步入库队列并轮询最终回执。
 
 旧入口仍保留用于兼容测试：
 

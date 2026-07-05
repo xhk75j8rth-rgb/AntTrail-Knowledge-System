@@ -1545,11 +1545,18 @@
       gap: 8px;
       min-height: 34px;
       padding: 0 14px;
+      border: 1px solid #d8e2f0;
       border-radius: 999px;
       background: #f0f4fa;
       color: #27344a;
       font-size: 14px;
       white-space: nowrap;
+    }
+
+    .mode-chip.is-active {
+      background: #e8f1ff;
+      border-color: #b9d2ff;
+      color: #174ea6;
     }
 
     .send-btn {
@@ -2287,6 +2294,10 @@
                   <span>队列</span>
                   <span class="queue-toggle-count" id="taskQueueButtonCount">0</span>
                 </button>
+                <button class="mode-chip" id="knowledgeSearchBtn" type="button" title="优先搜索本地 AntTrail 数据库" aria-label="搜索本地数据库" aria-pressed="false">
+                  <i data-lucide="database"></i>
+                  <span>知识搜索</span>
+                </button>
               </div>
               <div class="composer-tools">
                 <div class="composer-status" id="statusLine"><span class="dot"></span><span id="statusText">等待发送</span></div>
@@ -2311,7 +2322,7 @@
           <img class="wechat-icon" src="https://cdn.simpleicons.org/wechat/07C160" alt="" />
           <div>
             <h2 id="wechatBridgeTitle">微信链接入库桥</h2>
-            <p>连接微信到 Lucas Chat Gateway：链接自动入库，普通消息进入数据库问答。</p>
+            <p>连接微信到 Lucas Chat Gateway：链接自动入库，普通消息走模型；明确查资料时才检索数据库。</p>
           </div>
         </div>
         <button class="icon-only" type="button" title="关闭" aria-label="关闭" data-close-wechat-bridge>
@@ -2710,6 +2721,7 @@
     const imageUploadBtn = document.getElementById('imageUploadBtn');
     const fileUpload = document.getElementById('fileUpload');
     const imageUpload = document.getElementById('imageUpload');
+    const knowledgeSearchBtn = document.getElementById('knowledgeSearchBtn');
     const taskQueueShell = document.getElementById('taskQueueShell');
     const taskQueuePanel = document.getElementById('taskQueuePanel');
     const taskQueueExpandBtn = document.getElementById('taskQueueExpandBtn');
@@ -3002,10 +3014,14 @@
       };
     }
 
+    const TASK_QUEUE_TERMINAL_RETENTION_MS = 10 * 60 * 1000;
+
     function normalizeQueueFromResponse(payload, fallbackState = null) {
       const responseQueue = payload?.data?.queue;
       if (responseQueue && Array.isArray(responseQueue.items)) {
-        const batchId = taskQueueBatchId(fallbackState) || taskQueueBatchId(responseQueue);
+        const responseBatchId = payload?.data?.batch_id ? String(payload.data.batch_id) : taskQueueBatchId(responseQueue);
+        const fallbackBatchId = taskQueueBatchId(fallbackState);
+        const batchId = responseBatchId || fallbackBatchId;
         const items = responseQueue.items.map((item) => ({
           ...item,
           request_id: item?.request_id ?? batchId,
@@ -3015,7 +3031,9 @@
           items,
           source: 'response',
           batch_id: batchId,
+          replaces_batch_id: fallbackBatchId && fallbackBatchId !== batchId ? fallbackBatchId : '',
           created_at: fallbackState?.created_at || Date.now(),
+          updated_at: responseQueue.updated_at || Date.now(),
         });
       }
       const fallback = fallbackState && fallbackState.items?.length ? fallbackState : null;
@@ -3049,8 +3067,15 @@
       return item?.queue_status === 'pending' || item?.queue_status === 'in_progress';
     }
 
-    function queueItemShouldRemain(item) {
-      return queueItemIsActive(item);
+    function queueItemIsTerminal(item) {
+      return item?.queue_status === 'completed' || item?.queue_status === 'failed';
+    }
+
+    function queueItemShouldRemain(item, batch = null) {
+      if (queueItemIsActive(item)) return true;
+      if (!queueItemIsTerminal(item)) return false;
+      const updatedAt = Number(batch?.updated_at || batch?.created_at || Date.now());
+      return Date.now() - updatedAt <= TASK_QUEUE_TERMINAL_RETENTION_MS;
     }
 
     function combinedTaskQueueState() {
@@ -3062,7 +3087,7 @@
       let hasLocal = false;
       for (const batch of batches) {
         if (batch.source === 'local') hasLocal = true;
-        for (const item of batch.items.filter(queueItemShouldRemain)) {
+        for (const item of batch.items.filter((candidate) => queueItemShouldRemain(candidate, batch))) {
           items.push({
             ...item,
             original_index: item.index,
@@ -3091,7 +3116,7 @@
     function pruneTaskQueueBatches() {
       for (const [id, state] of Array.from(taskQueueBatches.entries())) {
         const normalized = normalizeQueueCounts(state);
-        if (!normalized.items.some(queueItemShouldRemain)) {
+        if (!normalized.items.some((item) => queueItemShouldRemain(item, normalized))) {
           taskQueueBatches.delete(id);
         }
       }
@@ -3106,10 +3131,17 @@
     function upsertTaskQueueBatch(state, { autoShow = false } = {}) {
       if (!state?.items?.length) return;
       const batchId = taskQueueBatchId(state) || `batch-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const replacesBatchId = state?.replaces_batch_id ? String(state.replaces_batch_id) : '';
+      if (replacesBatchId && replacesBatchId !== batchId) {
+        taskQueueBatches.delete(replacesBatchId);
+        taskQueueDismissedBatches.delete(replacesBatchId);
+      }
+      taskQueueDismissedBatches.delete(batchId);
       taskQueueBatches.set(batchId, {
         ...state,
         batch_id: batchId,
         created_at: state.created_at || Date.now(),
+        updated_at: state.updated_at || Date.now(),
       });
       pruneTaskQueueBatches();
       setTaskQueueState(combinedTaskQueueState(), { autoShow });
@@ -3130,13 +3162,15 @@
         });
       } else {
         taskQueueBatches.delete(id);
+        taskQueueDismissedBatches.add(id);
       }
       pruneTaskQueueBatches();
       setTaskQueueState(combinedTaskQueueState());
     }
 
     function taskQueueBatchIsTracked(batchId) {
-      return taskQueueBatches.has(String(batchId || ''));
+      const id = String(batchId || '');
+      return Boolean(id && !taskQueueDismissedBatches.has(id));
     }
 
     function batchItemDeleteEndpoint(batchId, itemIndex) {
@@ -3308,8 +3342,12 @@
       taskQueueProgressText.textContent = state.total
         ? `${state.in_progress || 0} 处理中 · ${state.pending || 0} 排队 · ${state.failed || 0} 失败`
         : '等待新的处理任务';
-      taskQueueProgressFill.style.setProperty('--queue-progress', '0%');
-      taskQueueProgressNumber.textContent = '';
+      const itemProgressValues = state.items.map(queueItemProgressValue);
+      const averageProgress = state.total
+        ? Math.round(itemProgressValues.reduce((sum, value) => sum + value, 0) / state.total)
+        : 0;
+      taskQueueProgressFill.style.setProperty('--queue-progress', `${averageProgress}%`);
+      taskQueueProgressNumber.textContent = state.total ? `${averageProgress}%` : '';
       taskQueueExpandBtn.setAttribute('aria-expanded', taskQueueExpanded ? 'true' : 'false');
       taskQueueButtonCount.textContent = state.total > 99 ? '99+' : String(state.total);
       taskQueueToggleBtn.classList.toggle('is-empty', !state.total);
@@ -3727,9 +3765,11 @@
     let authorizationPollTimers = new Map();
     let taskQueueState = null;
     let taskQueueBatches = new Map();
+    let taskQueueDismissedBatches = new Set();
     let taskQueueExpanded = true;
     let taskQueueManuallyHidden = false;
     let taskQueueRequestSeq = 0;
+    let knowledgeSearchMode = false;
     let selectedAttachments = [];
     const CONVERSATION_STATE_KEY = 'lucasMinimalChat.conversationState.v1';
     const AGENT_CONFIG_KEY = 'lucasMinimalChat.agentConfig.v1';
@@ -3924,9 +3964,6 @@
       const retrieval = compactRetrieval(data.retrieval);
       if (retrievalPlan) compact.retrieval_plan = retrievalPlan;
       if (retrieval) compact.retrieval = retrieval;
-      if (Object.prototype.hasOwnProperty.call(data, 'database_first_enforced')) {
-        compact.database_first_enforced = Boolean(data.database_first_enforced);
-      }
       return Object.keys(compact).length ? compact : null;
     }
 
@@ -4047,6 +4084,20 @@
     function setStatus(text, kind = '') {
       statusText.textContent = text;
       dot.className = 'dot' + (kind ? ` ${kind}` : '');
+    }
+
+    function renderKnowledgeSearchMode() {
+      knowledgeSearchBtn.classList.toggle('is-active', knowledgeSearchMode);
+      knowledgeSearchBtn.setAttribute('aria-pressed', knowledgeSearchMode ? 'true' : 'false');
+      knowledgeSearchBtn.title = knowledgeSearchMode
+        ? '已开启：本条消息会优先搜索本地 AntTrail 数据库'
+        : '优先搜索本地 AntTrail 数据库';
+    }
+
+    function toggleKnowledgeSearchMode() {
+      knowledgeSearchMode = !knowledgeSearchMode;
+      renderKnowledgeSearchMode();
+      updateRequestPreview(buildPayload());
     }
 
     function setConfigStatus(text, kind = '') {
@@ -4174,7 +4225,7 @@
           ? '二维码已生成。请用微信扫码并在手机上确认，确认后桥会继续连接 Chat Gateway。'
           : savedLoginPresent
           ? '当前复用本机微信登录态。保持 3963 服务和微信桥进程开启；需要换号或重新授权时点“重新扫码登录”。'
-          : '保持本地 3963 服务和微信桥进程开启；普通消息会进入数据库问答，链接会进入自动入库。';
+          : '保持本地 3963 服务和微信桥进程开启；普通消息走模型，明确查资料才检索数据库，链接会进入自动入库。';
       } else if (payload?.last_exit_code !== null && payload?.last_exit_code !== undefined) {
         wechatBridgeHint.textContent = `微信桥已停止，退出码 ${payload.last_exit_code}。需要重新测试时可以再次启动。`;
       } else {
@@ -4526,18 +4577,6 @@
       protocolState.textContent = `protocol: ${preset.protocol}`;
     }
 
-    function formatApiKeyState(provider) {
-      const keyEnv = provider.api_key_env || 'env/local';
-      if (!provider.api_key_present) return `key: missing (${keyEnv})`;
-      const source = String(provider.api_key_source || '');
-      const last4 = provider.api_key_last4 ? ` ...${provider.api_key_last4}` : '';
-      if (source.startsWith('env:')) return `key: detected from ${source.slice(4)}${last4}; connection not tested`;
-      if (source.startsWith('runner_env:')) return `key: detected from runner env ${source.slice('runner_env:'.length)}${last4}; connection not tested`;
-      if (source === 'local_config') return `key: saved locally${last4}; connection not tested`;
-      if (source === 'request') return `key: entered for this request${last4}; connection not tested`;
-      return `key: present${last4}; connection not tested`;
-    }
-
     function renderConfig(payload) {
       providerPresets = payload.presets || providerPresets;
       const provider = payload.provider || {};
@@ -4546,7 +4585,7 @@
       baseUrl.value = provider.base_url || providerById(providerSelect.value)?.default_base_url || '';
       modelName.value = provider.model || providerById(providerSelect.value)?.default_model || '';
       apiKey.value = '';
-      keyState.textContent = formatApiKeyState(provider);
+      keyState.textContent = provider.api_key_present ? `key: present ...${provider.api_key_last4 || '****'}` : `key: missing (${provider.api_key_env || 'env/local'})`;
       visionState.textContent = `vision: ${provider.supports_vision ? 'supported' : 'text-only/unknown'}`;
       protocolState.textContent = `protocol: ${provider.protocol || 'unknown'}`;
       providerNote.textContent = provider.notes || providerById(providerSelect.value)?.notes || '';
@@ -4851,10 +4890,7 @@
           throw new Error(payload.detail || payload.error || '读取失败');
         }
         renderConfig(payload);
-        setConfigStatus(
-          payload.provider?.api_key_present ? '配置已读取：检测到 Key，尚未测试连接' : '配置已读取：缺少 API Key',
-          'warn',
-        );
+        setConfigStatus('配置已读取', payload.provider?.api_key_present ? 'ok' : 'warn');
       } catch (error) {
         setConfigStatus(`配置读取失败：${error}`, 'bad');
       }
@@ -5020,10 +5056,7 @@
           throw new Error(data.detail || data.error || '保存失败');
         }
         renderConfig(data);
-        setConfigStatus(
-          data.provider?.api_key_present ? '配置已保存：尚未测试连接' : '配置已保存：缺少 API Key',
-          'warn',
-        );
+        setConfigStatus('配置已保存', data.provider?.api_key_present ? 'ok' : 'warn');
       } catch (error) {
         setConfigStatus(`配置保存失败：${error}`, 'bad');
       } finally {
@@ -5111,6 +5144,7 @@
 
     function buildPayload() {
       const agentConfig = readAgentConfig();
+      const retrievalQuery = message.value.trim();
       return {
         channel: 'my_chat_app',
         conversation_id: activeConversationId,
@@ -5127,6 +5161,9 @@
           agent_display_name: agentConfig.display_name,
           agent_temperature: agentConfig.temperature,
           agent_system_prompt: agentConfig.system_prompt,
+          retrieval_mode: knowledgeSearchMode ? 'knowledge_search' : 'auto',
+          force_retrieval: knowledgeSearchMode,
+          retrieval_query: knowledgeSearchMode ? retrievalQuery : '',
         },
       };
     }
@@ -5375,7 +5412,7 @@
         }
         const responseQueueState = normalizeQueueFromResponse(data, localQueueState);
         if (responseQueueState) {
-          upsertTaskQueueBatch(responseQueueState);
+          upsertTaskQueueBatch(responseQueueState, { autoShow: true });
         }
         renderResult(data);
         if (isRealtimeBatchResponse(data) && realtimeBatchIsRunning(data)) {
@@ -5505,6 +5542,7 @@
     clearConversationBtn.addEventListener('click', clearCurrentConversation);
     fileUploadBtn.addEventListener('click', () => fileUpload.click());
     imageUploadBtn.addEventListener('click', () => imageUpload.click());
+    knowledgeSearchBtn.addEventListener('click', toggleKnowledgeSearchMode);
     fileUpload.addEventListener('change', () => rememberAttachment(fileUpload.files?.[0], 'file'));
     imageUpload.addEventListener('change', () => rememberAttachment(imageUpload.files?.[0], 'image'));
     taskQueueToggleBtn.addEventListener('click', toggleTaskQueue);

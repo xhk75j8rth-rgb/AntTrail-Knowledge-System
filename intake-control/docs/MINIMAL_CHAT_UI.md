@@ -38,6 +38,18 @@ The page sends:
 
 `metadata.dry_run=true` is supported by the backend and prevents `run_link_job.py` from being invoked.
 
+When the composer's “知识搜索” toggle is enabled, the page also sends:
+
+```json
+{
+  "retrieval_mode": "knowledge_search",
+  "force_retrieval": true,
+  "retrieval_query": "ai"
+}
+```
+
+This forces the fallback chat path to call the local AntTrail / Lucas Database `POST /api/agent/retrieve`, which is needed for short queries such as `ai` that are otherwise ordinary chat text.
+
 ## Model Config Panel
 
 The same page includes a “模型配置” panel. It calls:

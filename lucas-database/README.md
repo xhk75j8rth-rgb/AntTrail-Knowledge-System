@@ -145,4 +145,3 @@ curl -X POST "http://localhost:8765/api/write-by-path" \
 - [docs/EMBEDDING_PROVIDER.md](docs/EMBEDDING_PROVIDER.md) / 向量模型接入说明
 - [docs/VECTOR_STORE_ADAPTER.md](docs/VECTOR_STORE_ADAPTER.md) / 向量库存储适配说明
 - [docs/SIYUAN_MIGRATION.md](docs/SIYUAN_MIGRATION.md) / 从 SiYuan 迁移到 Lucas Database
-- [docs/HANDOFF.md](docs/HANDOFF.md) / Agent 交接记录

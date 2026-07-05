@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import os
-import ssl
 import tempfile
 import unittest
 import urllib.error
@@ -173,7 +172,7 @@ class AILayerTests(unittest.TestCase):
         router = FakeRouter()
         retriever = FakeRetriever()
         response = ChatResponder(router=router, retriever=retriever).respond(
-            "App Store Connect 上架 iPhone 应用需要准备什么",
+            "查一下 App Store Connect 上架 iPhone 应用需要准备什么资料",
             conversation_history=[{"role": "user", "text": "我想做一个 iPhone app"}],
         )
 
@@ -186,7 +185,7 @@ class AILayerTests(unittest.TestCase):
         self.assertIn("App Store Connect 上架", retriever.last_query)
         self.assertIn("[Source 1]", response.reply_text)
 
-    def test_chat_responder_normalizes_short_topic_followup_for_retrieval(self) -> None:
+    def test_chat_responder_normalizes_explicit_short_topic_retrieval(self) -> None:
         class FakeRouter:
             def __init__(self) -> None:
                 self.last_prompt = ""
@@ -240,7 +239,7 @@ class AILayerTests(unittest.TestCase):
         router = FakeRouter()
         retriever = CapturingRetriever()
         response = ChatResponder(router=router, retriever=retriever).respond(
-            "软件工程呢",
+            "查一下软件工程资料",
             conversation_history=[
                 {"role": "user", "text": "AI 写作呢"},
                 {"role": "assistant", "text": "知识库主要有 AI 写作和前端动画开发。"},
@@ -255,7 +254,7 @@ class AILayerTests(unittest.TestCase):
         self.assertIn("不能回答“没有直接相关内容”", router.last_prompt)
         self.assertIn("[Source 1] 软件工程", router.last_prompt)
 
-    def test_chat_responder_uses_previous_retrieval_topic_for_detail_followup(self) -> None:
+    def test_chat_responder_detail_followup_stays_with_model_without_retrieval(self) -> None:
         class FakeRouter:
             def __init__(self) -> None:
                 self.last_prompt = ""
@@ -264,7 +263,64 @@ class AILayerTests(unittest.TestCase):
                 self.last_prompt = prompt
                 return ModelResult(
                     ok=True,
-                    text="可以继续展开民科这条知识卡。[Source 1]",
+                    text="可以，我继续具体展开。",
+                    model_provider="mock",
+                    model_name="mock-model",
+                )
+
+        class ExplodingRetriever:
+            def retrieve(self, *args, **kwargs):  # noqa: ANN002, ANN003
+                raise AssertionError("ordinary detail follow-ups should not query AntTrail Database")
+
+        router = FakeRouter()
+        response = ChatResponder(router=router, retriever=ExplodingRetriever()).respond(
+            "具体展开说说",
+            conversation_history=[
+                {"role": "user", "text": "告诉我关于民科的事情"},
+                {
+                    "role": "assistant",
+                    "text": "库里有一条民科相关资料。[Source 1]",
+                    "data": {
+                        "retrieval_plan": {
+                            "should_retrieve": True,
+                            "query": "民科",
+                            "topic": "民科",
+                            "action": "search",
+                            "used_history": False,
+                            "reason": "topic_extracted",
+                        },
+                        "retrieval": {
+                            "attempted": True,
+                            "ok": True,
+                            "status": "ready",
+                            "can_answer": True,
+                            "query": "民科",
+                            "confidence": {"low_confidence": False},
+                            "sources": [{"title": "72岁卖房搞民科：李文亚的赛博斗蛐蛐现象", "path": "/知识卡/社会观察/民科"}],
+                        },
+                        "database_first_enforced": True,
+                    },
+                },
+            ],
+        )
+
+        self.assertTrue(response.ok)
+        self.assertEqual(response.reply_text, "可以，我继续具体展开。")
+        self.assertFalse(response.data["retrieval"]["attempted"])
+        self.assertFalse(response.data["retrieval_plan"]["should_retrieve"])
+        self.assertEqual(response.data["retrieval_plan"]["reason"], "no_explicit_retrieval_intent")
+        self.assertNotIn("Lucas Database 检索结果", router.last_prompt)
+
+    def test_chat_responder_explicit_retrieval_followup_uses_previous_topic(self) -> None:
+        class FakeRouter:
+            def __init__(self) -> None:
+                self.last_prompt = ""
+
+            def generate_text(self, task_type, prompt, system_prompt=None, metadata=None):  # noqa: ANN001
+                self.last_prompt = prompt
+                return ModelResult(
+                    ok=True,
+                    text="我继续按民科查到的资料展开。[Source 1]",
                     model_provider="mock",
                     model_name="mock-model",
                 )
@@ -309,9 +365,9 @@ class AILayerTests(unittest.TestCase):
         router = FakeRouter()
         retriever = CapturingRetriever()
         response = ChatResponder(router=router, retriever=retriever).respond(
-            "具体展开说说",
+            "继续查一下资料",
             conversation_history=[
-                {"role": "user", "text": "告诉我关于民科的事情"},
+                {"role": "user", "text": "查一下民科资料"},
                 {
                     "role": "assistant",
                     "text": "库里有一条民科相关资料。[Source 1]",
@@ -320,7 +376,7 @@ class AILayerTests(unittest.TestCase):
                             "should_retrieve": True,
                             "query": "民科",
                             "topic": "民科",
-                            "action": "explain",
+                            "action": "search",
                             "used_history": False,
                             "reason": "topic_extracted",
                         },
@@ -333,7 +389,6 @@ class AILayerTests(unittest.TestCase):
                             "confidence": {"low_confidence": False},
                             "sources": [{"title": "72岁卖房搞民科：李文亚的赛博斗蛐蛐现象", "path": "/知识卡/社会观察/民科"}],
                         },
-                        "database_first_enforced": True,
                     },
                 },
             ],
@@ -343,13 +398,13 @@ class AILayerTests(unittest.TestCase):
         self.assertEqual(retriever.last_query, "民科")
         self.assertEqual(response.data["retrieval_plan"]["query"], "民科")
         self.assertEqual(response.data["retrieval_plan"]["topic"], "民科")
-        self.assertEqual(response.data["retrieval_plan"]["action"], "expand")
+        self.assertEqual(response.data["retrieval_plan"]["action"], "search")
         self.assertTrue(response.data["retrieval_plan"]["used_history"])
-        self.assertEqual(response.data["retrieval_plan"]["reason"], "followup_topic_from_history")
+        self.assertEqual(response.data["retrieval_plan"]["reason"], "explicit_retrieval_followup_from_history")
         self.assertIn("核心主题=民科", router.last_prompt)
         self.assertIn("[Source 1] 72岁卖房搞民科", router.last_prompt)
 
-    def test_chat_responder_plans_topic_queries_across_user_actions(self) -> None:
+    def test_chat_responder_plans_only_explicit_retrieval_queries(self) -> None:
         class FakeRouter:
             def __init__(self) -> None:
                 self.prompts: list[str] = []
@@ -402,15 +457,15 @@ class AILayerTests(unittest.TestCase):
                 )
 
         cases = [
-            ("总结一下穿搭", "summarize", "穿搭"),
-            ("讲讲软件工程", "explain", "软件工程"),
-            ("告诉我关于民科的事情", "explain", "民科"),
-            ("有没有外贸从零到复盘", "search", "外贸从零到复盘"),
-            ("AI编程呢", "lookup", "AI编程"),
+            ("查一下穿搭资料", "search", "穿搭"),
+            ("检索软件工程资料", "search", "软件工程"),
+            ("从知识库里找民科资料", "search", "民科"),
+            ("有没有外贸从零到复盘资料", "search", "外贸从零到复盘"),
+            ("查一下 AI编程", "search", "AI编程"),
             ("查一下 GSAP Skills", "search", "GSAP Skills"),
-            ("整理一下 App Store Connect", "summarize", "App Store Connect"),
-            ("动画相关的", "lookup", "动画"),
-            ("AI动画芝士包", "lookup", "AI动画知识包"),
+            ("搜索 App Store Connect 资料", "search", "App Store Connect"),
+            ("查一下动画相关的资料", "search", "动画"),
+            ("查一下AI动画芝士包资料", "search", "AI动画知识包"),
         ]
         router = FakeRouter()
         retriever = TopicAwareRetriever()
@@ -434,7 +489,137 @@ class AILayerTests(unittest.TestCase):
         for prompt, (_, _, expected_topic) in zip(router.prompts, cases):
             self.assertIn(f"核心主题={expected_topic}", prompt)
 
-    def test_chat_responder_blocks_topic_mismatch_instead_of_answering_weak_sources(self) -> None:
+    def test_chat_responder_skips_retrieval_for_ordinary_topic_requests(self) -> None:
+        class FakeRouter:
+            def __init__(self) -> None:
+                self.prompts: list[str] = []
+
+            def generate_text(self, task_type, prompt, system_prompt=None, metadata=None):  # noqa: ANN001
+                self.prompts.append(prompt)
+                return ModelResult(
+                    ok=True,
+                    text="这是模型自然回答。",
+                    model_provider="mock",
+                    model_name="mock-model",
+                )
+
+        class ExplodingRetriever:
+            def retrieve(self, *args, **kwargs):  # noqa: ANN002, ANN003
+                raise AssertionError("ordinary chat should not query AntTrail Database")
+
+        cases = [
+            "总结一下穿搭",
+            "讲讲软件工程",
+            "告诉我关于民科的事情",
+            "AI编程呢",
+            "动画相关的",
+            "AI动画芝士包",
+            "在具体看看",
+        ]
+
+        router = FakeRouter()
+        responder = ChatResponder(router=router, retriever=ExplodingRetriever())
+        for text in cases:
+            response = responder.respond(
+                text,
+                conversation_history=[
+                    {
+                        "role": "assistant",
+                        "text": "我查到过民科资料。[Source 1]",
+                        "data": {
+                            "retrieval_plan": {
+                                "should_retrieve": True,
+                                "query": "民科",
+                                "topic": "民科",
+                                "action": "explain",
+                                "used_history": False,
+                                "reason": "old_mandatory_database_first",
+                            },
+                            "retrieval": {
+                                "attempted": True,
+                                "ok": True,
+                                "status": "ready",
+                                "can_answer": True,
+                                "query": "民科",
+                                "confidence": {"low_confidence": False},
+                            },
+                        },
+                    },
+                ],
+            )
+            self.assertTrue(response.ok)
+            self.assertFalse(response.data["retrieval"]["attempted"])
+            self.assertFalse(response.data["retrieval_plan"]["should_retrieve"])
+            self.assertEqual(response.data["retrieval_plan"]["reason"], "no_explicit_retrieval_intent")
+            self.assertNotIn("Lucas Database 检索结果", router.prompts[-1])
+
+    def test_chat_responder_forced_knowledge_search_uses_short_query(self) -> None:
+        class FakeRouter:
+            def __init__(self) -> None:
+                self.last_prompt = ""
+
+            def generate_text(self, task_type, prompt, system_prompt=None, metadata=None):  # noqa: ANN001
+                self.last_prompt = prompt
+                return ModelResult(
+                    ok=True,
+                    text="库里有 AI 节点。[Source 1]",
+                    model_provider="mock",
+                    model_name="mock-model",
+                )
+
+        class CapturingRetriever:
+            def __init__(self) -> None:
+                self.queries: list[str] = []
+
+            def retrieve(self, query, **kwargs):  # noqa: ANN001, ANN003
+                self.queries.append(query)
+                return RetrievalResult(
+                    attempted=True,
+                    ok=True,
+                    status="ready",
+                    can_answer=True,
+                    query=query,
+                    context_text="[Source 1] AI\n# AI",
+                    context={"text": "context", "source_count": 1, "block_count": 1},
+                    answerability={"can_answer": True},
+                    confidence={"low_confidence": False},
+                    sources=[{
+                        "source_index": 1,
+                        "citation_label": "[Source 1]",
+                        "source_type": "node",
+                        "source_id": "node_ai",
+                        "title": "AI",
+                        "path": "/知识卡/AI",
+                        "chunk_ids": ["chunk_ai"],
+                        "best_score": 1,
+                    }],
+                    citations=[{
+                        "source_index": 1,
+                        "citation_label": "[Source 1]",
+                        "chunk_id": "chunk_ai",
+                        "title": "AI",
+                        "path": "/知识卡/AI",
+                        "text": "# AI",
+                        "score": 1,
+                    }],
+                )
+
+        router = FakeRouter()
+        retriever = CapturingRetriever()
+        response = ChatResponder(router=router, retriever=retriever).respond(
+            "ai",
+            force_retrieval=True,
+        )
+
+        self.assertTrue(response.ok)
+        self.assertEqual(retriever.queries, ["ai"])
+        self.assertTrue(response.data["retrieval"]["attempted"])
+        self.assertTrue(response.data["retrieval"]["can_answer"])
+        self.assertEqual(response.data["retrieval_plan"]["reason"], "forced_retrieval")
+        self.assertEqual(response.data["retrieval_plan"]["query"], "ai")
+        self.assertIn("Lucas Database 检索结果", router.last_prompt)
+
+    def test_chat_responder_blocks_topic_mismatch_for_explicit_retrieval(self) -> None:
         class FakeRouter:
             def __init__(self) -> None:
                 self.last_prompt = ""
@@ -483,7 +668,7 @@ class AILayerTests(unittest.TestCase):
 
         router = FakeRouter()
         response = ChatResponder(router=router, retriever=MismatchedRetriever()).respond(
-            "总结一下穿搭",
+            "查一下穿搭资料",
             conversation_history=[
                 {"role": "assistant", "text": "可用知识集中在 AI 写作、GSAP Skills 和外贸。"},
             ],
@@ -494,10 +679,8 @@ class AILayerTests(unittest.TestCase):
         self.assertEqual(response.data["retrieval"]["status"], "topic_mismatch")
         self.assertFalse(response.data["retrieval"]["can_answer"])
         self.assertIn("topic_mismatch", response.data["retrieval"]["warnings"])
-        self.assertFalse(response.data["model_called"])
-        self.assertTrue(response.data["database_first_enforced"])
-        self.assertIn("没有找到关于", response.reply_text)
-        self.assertEqual(router.last_prompt, "")
+        self.assertTrue(response.data["model_called"])
+        self.assertIn("Lucas Database 检索状态", router.last_prompt)
 
     def test_chat_responder_uses_bge_friendly_retrieval_timeout(self) -> None:
         class FakeRouter:
@@ -528,7 +711,7 @@ class AILayerTests(unittest.TestCase):
         retriever = CapturingRetriever()
         with patch.dict(os.environ, {"LUCAS_CHAT_RAG_TIMEOUT_SEC": ""}, clear=False):
             response = ChatResponder(router=FakeRouter(), retriever=retriever).respond(
-                "App Store Connect 上架 iPhone 应用需要准备什么",
+                "查一下 App Store Connect 上架 iPhone 应用需要准备什么资料",
                 timeout_sec=60,
             )
 
@@ -538,7 +721,7 @@ class AILayerTests(unittest.TestCase):
         override_retriever = CapturingRetriever()
         with patch.dict(os.environ, {"LUCAS_CHAT_RAG_TIMEOUT_SEC": "90"}, clear=False):
             ChatResponder(router=FakeRouter(), retriever=override_retriever).respond(
-                "App Store Connect 上架 iPhone 应用需要准备什么",
+                "查一下 App Store Connect 上架 iPhone 应用需要准备什么资料",
                 timeout_sec=60,
             )
 
@@ -581,49 +764,34 @@ class AILayerTests(unittest.TestCase):
         self.assertTrue(response.data["retrieval"]["attempted"])
         self.assertFalse(response.data["retrieval"]["can_answer"])
         self.assertEqual(response.data["retrieval"]["status"], "low_confidence")
-        self.assertFalse(response.data["model_called"])
-        self.assertTrue(response.data["database_first_enforced"])
-        self.assertIn("没有找到关于", response.reply_text)
-        self.assertIn("不凭模型常识乱猜", response.reply_text)
-        self.assertEqual(router.last_prompt, "")
+        self.assertTrue(response.data["model_called"])
+        self.assertIn("Lucas Database 检索状态", router.last_prompt)
+        self.assertEqual(response.reply_text, "我没有从本地知识库找到可靠命中；你可以补充更具体的关键词。")
 
-    def test_chat_responder_enforces_database_first_for_ordinary_questions(self) -> None:
-        class ExplodingRouter:
-            def generate_text(self, *args, **kwargs):  # noqa: ANN002, ANN003
-                raise AssertionError("ordinary knowledge questions must not bypass failed retrieval")
-
-        class LowConfidenceRetriever:
-            def __init__(self) -> None:
-                self.last_query = ""
-
-            def retrieve(self, query, **kwargs):  # noqa: ANN001, ANN003
-                self.last_query = query
-                return RetrievalResult(
-                    attempted=True,
+    def test_chat_responder_allows_ordinary_questions_without_database(self) -> None:
+        class FakeRouter:
+            def generate_text(self, task_type, prompt, system_prompt=None, metadata=None):  # noqa: ANN001
+                return ModelResult(
                     ok=True,
-                    status="low_confidence",
-                    can_answer=False,
-                    query=query,
-                    context_text="",
-                    answerability={"can_answer": False, "reason": "low_confidence"},
-                    confidence={"low_confidence": True},
-                    warnings=["low_confidence", "empty_context"],
+                    text="可以，普通问题我直接回答。",
+                    model_provider="mock",
+                    model_name="mock-model",
                 )
 
-        retriever = LowConfidenceRetriever()
-        response = ChatResponder(router=ExplodingRouter(), retriever=retriever).respond(
+        class ExplodingRetriever:
+            def retrieve(self, *args, **kwargs):  # noqa: ANN002, ANN003
+                raise AssertionError("ordinary knowledge questions should not query the database")
+
+        response = ChatResponder(router=FakeRouter(), retriever=ExplodingRetriever()).respond(
             "告诉我关于民科的事情"
         )
 
         self.assertTrue(response.ok)
-        self.assertEqual(response.data["retrieval_plan"]["query"], "民科")
-        self.assertEqual(response.data["retrieval_plan"]["topic"], "民科")
-        self.assertEqual(retriever.last_query, "民科")
-        self.assertTrue(response.data["retrieval"]["attempted"])
-        self.assertFalse(response.data["retrieval"]["can_answer"])
-        self.assertFalse(response.data["model_called"])
-        self.assertTrue(response.data["database_first_enforced"])
-        self.assertIn("没有找到关于 「民科」 的可靠命中", response.reply_text)
+        self.assertEqual(response.reply_text, "可以，普通问题我直接回答。")
+        self.assertFalse(response.data["retrieval_plan"]["should_retrieve"])
+        self.assertEqual(response.data["retrieval_plan"]["reason"], "no_explicit_retrieval_intent")
+        self.assertFalse(response.data["retrieval"]["attempted"])
+        self.assertTrue(response.data["model_called"])
 
     def test_chat_responder_storage_question_uses_config_without_model_guessing(self) -> None:
         class ExplodingRouter:
@@ -901,57 +1069,6 @@ class AILayerTests(unittest.TestCase):
         self.assertIn("upstream timeout", result.error)
         self.assertNotIn("sk-1234567890", result.error)
         self.assertNotIn("abcdefghi", result.error)
-
-    def test_openai_compatible_retries_ssl_eof_once_then_succeeds(self) -> None:
-        class FakeResponse:
-            def __enter__(self):  # noqa: ANN204
-                return self
-
-            def __exit__(self, *args):  # noqa: ANN002
-                return False
-
-            def read(self) -> bytes:
-                return b'{"choices":[{"message":{"content":"OK"}}],"usage":{"total_tokens":1}}'
-
-        provider = OpenAICompatibleProvider(
-            provider_name="openai_compatible",
-            api_key="secret",
-            base_url="https://relay.example/v1",
-            model_name="demo-model",
-        )
-
-        with patch("urllib.request.urlopen", side_effect=[ssl.SSLEOFError("EOF occurred in violation of protocol"), FakeResponse()]) as urlopen:
-            result = provider.generate_text("hello", metadata={"timeout_sec": 1, "network_retry_attempts": 2})
-
-        self.assertTrue(result.ok)
-        self.assertEqual(result.text, "OK")
-        self.assertEqual(urlopen.call_count, 2)
-
-    def test_openai_compatible_reports_transient_ssl_eof_without_secret(self) -> None:
-        provider = OpenAICompatibleProvider(
-            provider_name="openai_compatible",
-            api_key="fake-test-token",
-            base_url="https://relay.example/v1",
-            model_name="demo-model",
-        )
-
-        with patch("urllib.request.urlopen", side_effect=ssl.SSLEOFError("EOF occurred in violation of protocol with Bearer fake-test-token")):
-            result = provider.generate_text("hello", metadata={"timeout_sec": 1, "network_retry_attempts": 2})
-
-        self.assertFalse(result.ok)
-        self.assertIn("transient_network_error", result.error)
-        self.assertIn("ssl_unexpected_eof", result.error)
-        self.assertIn("attempts=2", result.error)
-        self.assertNotIn("fake-test-token", result.error)
-
-    def test_model_failure_reply_mentions_transient_network_error(self) -> None:
-        reply = ChatResponder(router=ModelRouter())._model_failure_reply(
-            "transient_network_error: ssl_unexpected_eof: EOF occurred in violation of protocol (attempts=2)"
-        )
-
-        self.assertIn("模型连接不稳定", reply)
-        self.assertIn("TLS", reply)
-        self.assertIn("短重试", reply)
 
     def test_public_ai_config_defaults_to_deepseek_without_mock(self) -> None:
         os.environ.pop("AI_LAYER_PROVIDER", None)

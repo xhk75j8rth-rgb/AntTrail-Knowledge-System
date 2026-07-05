@@ -14,6 +14,9 @@ from unittest.mock import patch
 import server.chat_api as chat_api
 from fastapi.testclient import TestClient
 
+from ai_layer.chat_responder import ChatResponder
+from ai_layer.lucas_retrieval_client import RetrievalResult
+from ai_layer.provider_schema import ModelResult
 from chat_gateway.link_extractor import extract_context_text, extract_urls
 from chat_gateway.message_router import route_message
 from chat_gateway.message_schema import MessageEvent
@@ -121,6 +124,79 @@ class ChatGatewayTests(unittest.TestCase):
         self.assertIn("mock:text:", response.reply_text)
         self.assertEqual(response.data["agent"]["model_provider"], "mock")
         self.assertTrue(response.data["agent"]["model_called"])
+
+    def test_metadata_force_retrieval_searches_database_for_short_query(self) -> None:
+        class FakeRouter:
+            def __init__(self) -> None:
+                self.last_prompt = ""
+
+            def generate_text(self, task_type, prompt, system_prompt=None, metadata=None):  # noqa: ANN001
+                self.last_prompt = prompt
+                return ModelResult(
+                    ok=True,
+                    text="库里有 AI 节点。[Source 1]",
+                    model_provider="mock",
+                    model_name="mock-model",
+                )
+
+        class CapturingRetriever:
+            def __init__(self) -> None:
+                self.last_query = ""
+
+            def retrieve(self, query, **kwargs):  # noqa: ANN001, ANN003
+                self.last_query = query
+                return RetrievalResult(
+                    attempted=True,
+                    ok=True,
+                    status="ready",
+                    can_answer=True,
+                    query=query,
+                    context_text="[Source 1] AI\n# AI",
+                    context={"text": "context", "source_count": 1, "block_count": 1},
+                    answerability={"can_answer": True},
+                    confidence={"low_confidence": False},
+                    sources=[{
+                        "source_index": 1,
+                        "citation_label": "[Source 1]",
+                        "source_type": "node",
+                        "source_id": "node_ai",
+                        "title": "AI",
+                        "path": "/知识卡/AI",
+                        "chunk_ids": ["chunk_ai"],
+                        "best_score": 1,
+                    }],
+                    citations=[{
+                        "source_index": 1,
+                        "citation_label": "[Source 1]",
+                        "chunk_id": "chunk_ai",
+                        "title": "AI",
+                        "path": "/知识卡/AI",
+                        "text": "# AI",
+                        "score": 1,
+                    }],
+                )
+
+        router = FakeRouter()
+        retriever = CapturingRetriever()
+        responder = ChatResponder(router=router, retriever=retriever)
+        event = MessageEvent.from_text(
+            "ai",
+            channel="debug_cli",
+            conversation_id="test-room",
+            sender_id="lucas",
+            metadata={"retrieval_mode": "knowledge_search", "force_retrieval": True},
+        )
+
+        with patch("chat_gateway.handlers.fallback_handler.RESPONDER", responder):
+            response = route_message(event, dry_run=True)
+
+        self.assertTrue(response.ok)
+        self.assertEqual(response.handled_by, "fallback_handler")
+        self.assertEqual(retriever.last_query, "ai")
+        self.assertTrue(response.data["retrieval"]["attempted"])
+        self.assertTrue(response.data["retrieval"]["can_answer"])
+        self.assertEqual(response.data["retrieval_plan"]["reason"], "forced_retrieval")
+        self.assertIn("Lucas Database 检索结果", router.last_prompt)
 
     def test_storage_config_question_reads_config_without_model_guessing(self) -> None:
         storage_path = Path(self._tmpdir.name) / "storage.local.json"
@@ -1044,6 +1120,34 @@ class ChatGatewayTests(unittest.TestCase):
 
         self.assertTrue(should_run_douyin_web_image_ocr(content, transcript, ocr, quality, {}))
 
+    def test_douyin_requested_ocr_without_video_still_tries_web_image_fallback(self) -> None:
+        content = {
+            "ok": False,
+            "status": "page_fetch_failed",
+            "source_type": "video/douyin",
+            "original_url": "https://v.douyin.com/static/",
+            "visible_text": "",
+            "user_supplied_text": "用户附带的一段足够写正式卡的抖音分享说明。",
+            "user_supplied_text_length": 120,
+        }
+        transcript = {
+            "ok": True,
+            "status": "transcribed",
+            "has_speech": True,
+            "confidence": "medium",
+            "transcript": "这是一段足够长的口播转写材料，用来模拟已经可以写正式卡但没有本地视频文件的抖音任务。",
+            "video_path": "",
+        }
+        ocr = {"ok": True, "status": "skipped_no_video", "should_run_ocr": True, "merged_text": ""}
+        quality = {
+            "can_compose_formal": True,
+            "needs_visual_enrichment": False,
+            "primary_sources": ["user_supplied_text", "transcript"],
+            "blockers": [],
+        }
+
+        self.assertTrue(should_run_douyin_web_image_ocr(content, transcript, ocr, quality, {}))
+
     def test_visual_platform_reader_failure_triggers_web_image_ocr_without_image_count(self) -> None:
         content = {
             "ok": False,
@@ -1326,6 +1430,11 @@ class ChatGatewayTests(unittest.TestCase):
         self.assertIn("agent_timeout_sec", response.text)
         self.assertIn("Agent配置", response.text)
         self.assertIn("agent_system_prompt", response.text)
+        self.assertIn("knowledgeSearchBtn", response.text)
+        self.assertIn("知识搜索", response.text)
+        self.assertIn("retrieval_mode", response.text)
+        self.assertIn("force_retrieval", response.text)
+        self.assertIn("retrieval_query", response.text)
         self.assertIn("添加数据库", response.text)
         self.assertIn("AntTrail Database", response.text)
         self.assertIn("打开页面", response.text)
@@ -1440,13 +1549,14 @@ class ChatGatewayTests(unittest.TestCase):
         self.assertEqual(payload["qr_code_url"], "https://liteapp.weixin.qq.com/q/test?qrcode=abc&bot_type=3")
         self.assertIn("api.qrserver.com", payload["qr_image_url"])
 
-    def test_ui_task_queue_uses_per_item_progress_and_prunes_completed_items(self) -> None:
+    def test_ui_task_queue_uses_per_item_progress_and_keeps_recent_terminal_items(self) -> None:
         client = TestClient(app)
         response = client.get("/ui")
 
         self.assertEqual(response.status_code, 200)
         self.assertIn("queueItemShouldRemain", response.text)
         self.assertIn("queueItemIsActive", response.text)
+        self.assertIn("queueItemIsTerminal", response.text)
         self.assertIn("queueItemProgressValue", response.text)
         self.assertIn("task-item-progress", response.text)
         self.assertIn("task-item-stages", response.text)
@@ -1469,6 +1579,15 @@ class ChatGatewayTests(unittest.TestCase):
         self.assertIn("/items/", response.text)
         self.assertIn("pollRealtimeBatch", response.text)
         self.assertIn("taskQueueBatchIsTracked", response.text)
+        self.assertIn("TASK_QUEUE_TERMINAL_RETENTION_MS", response.text)
+        self.assertIn("payload?.data?.batch_id ? String(payload.data.batch_id) : taskQueueBatchId(responseQueue)", response.text)
+        self.assertIn("replaces_batch_id", response.text)
+        self.assertIn("taskQueueBatches.delete(replacesBatchId);", response.text)
+        self.assertIn("taskQueueDismissedBatches", response.text)
+        self.assertIn("!taskQueueDismissedBatches.has(id)", response.text)
+        self.assertIn("upsertTaskQueueBatch(responseQueueState, { autoShow: true });", response.text)
+        self.assertIn("averageProgress", response.text)
+        self.assertIn("queueItemIsTerminal(item)", response.text)
         self.assertIn("stage_label", response.text)
         self.assertNotIn("kind: 'message'", response.text)
         self.assertNotIn("taskStageList.innerHTML = stages.map", response.text)

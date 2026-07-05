@@ -24,7 +24,7 @@ lucas-database\
 - Created a new merge-test shell directory.
 - Copied the current intake project into `intake-control/`.
 - Copied Lucas Database into `lucas-database/`.
-- Added root-level `README.md`, `AGENTS.md`, `docs/PROJECT_INDEX.md`, `docs/COMMANDS.md`, and wrapper scripts.
+- Added root-level `README.md`, `docs/PROJECT_INDEX.md`, `docs/COMMANDS.md`, and wrapper scripts.
 - Excluded or removed machine-local/runtime data from the source copy.
 - Installed database dependencies inside the test copy only so `npm run typecheck` could run.
 

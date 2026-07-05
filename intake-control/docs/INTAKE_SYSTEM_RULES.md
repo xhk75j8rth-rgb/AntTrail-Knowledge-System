@@ -73,14 +73,17 @@ Chat Gateway / 微信桥 / debug CLI
 - 正式卡材料已获取且质量门禁通过时，应进入配置的 Storage Sink 写入；如果没有既有分类但主题明确，且 `taxonomy_auto_create_from_proposal=true`，应使用 `CategoryCreateProposalV1` 的路径作为写入目标，而不是仅因分类树缺项堆到 `Inbox / 待分类`。
 - AI 根路径不是分类兜底。即使真实知识树快照里存在 `AI / ...` 路径，分类器也必须先确认材料有 AI / Agent / 模型 / 知识系统 / 工程化等域内证据；普通穿搭、服装搭配、防晒、妆容、护肤、旅行、美食等生活方式内容不能因为出现“内容”“视频”等泛词就写入 `AI / 内容生产`。当 `taxonomy_auto_create_from_proposal=true` 且主题明确时，应写入非 AI proposal 路径，例如 `生活方式 / 穿搭`、`生活方式 / 防晒`，而不是继续堆到 `Inbox / 待分类`。
 
-## Chat Gateway Database-First QA
+## Chat Gateway Explicit Retrieval QA
 
-普通无链接知识问答必须先查 Lucas Database / AntTrail Database，而不是让模型先凭常识回答。例外只包括问候、确认、状态追问、配置问答、修订请求和无可搜索文本。
+普通无链接聊天默认交给当前聊天模型自然回答。只有用户明确表达“查资料 / 检索 / 搜索 / 查知识库 / 查数据库 / 找笔记 / 有没有库内资料”等资料检索意图时，Chat Gateway 才调用 Lucas Database / AntTrail Database。
+
+规则：
 
 - Chat Gateway 通过 HTTP 调用数据库 `POST /api/agent/retrieve`，生产问答不得依赖 MCP。
-- 用户口语问法要先抽取可检索主题，例如“告诉我关于民科的事情”应检索“民科”。
-- 检索命中可靠上下文时，模型只能依据数据库证据回答，并使用 `[Source n]` 标注来源。
-- 检索低置信、topic mismatch、超时或不可用时，必须确定性说明没有可靠命中或检索不可用；不得继续调用模型用通用知识补答案。
+- 用户明确查资料时，要先抽取可检索主题，例如“查一下民科资料”应检索“民科”。
+- UI 显式“知识搜索 / 数据库搜索”模式应在 `metadata.retrieval_mode=knowledge_search` 或 `metadata.force_retrieval=true` 时强制查本地 Lucas Database / AntTrail；短词如 `ai` 不应被普通聊天分支吞掉。
+- 检索命中可靠上下文时，模型应优先依据数据库证据回答，并使用 `[Source n]` 标注来源。
+- 检索低置信、topic mismatch、超时或不可用时，不要用硬编码模板截断对话；把检索状态交给模型，让模型自然说明库内证据不足，并继续协助用户讨论。
 - 配置类问题仍按本地配置事实回答，不走数据库 RAG。
 
 ## Douyin Level 3 Protocol
@@ -131,6 +134,7 @@ OCR 是条件触发增强能力，不是每条视频的强制默认步骤。
 - 口播 transcript 缺失画面关键信息。
 - `run_link_job.py` 通过内容特征或配置判断需要 OCR。
 - 小红书、抖音、混合图文或视频类链接的 Source Reader 失败、平台正文为空或材料不足时，应尝试已有网页图片捕获/OCR；即使 `image_count` 为 0 或未知，也不能只因为缺少图片计数就放弃视觉兜底。
+- 抖音/视频链路已明确请求 OCR 但 `transcript.video_path` 为空时，应尝试网页图片/媒体截图 OCR 兜底；不能仅因用户附文或 transcript 已足够写正式卡就跳过视觉兜底。
 
 边界：
 
