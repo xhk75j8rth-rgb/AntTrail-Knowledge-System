@@ -1,100 +1,105 @@
 # AntTrail Knowledge System
 
-AntTrail is a local-first personal knowledge system. This repository is meant to be published as source code: users clone it, install dependencies, and run it locally. It does not include your local database, attachments, API keys, model caches, job history, or `node_modules`.
+AntTrail 是一个本地优先的个人知识系统。这个仓库以源码形式发布：用户 clone 仓库后，在本机安装依赖并运行。
 
-It has two runnable parts:
+仓库不会包含你的本地数据库、附件、API Key、模型缓存、任务历史、登录态、`node_modules` 或其他本机运行数据。
 
-- `lucas-database/`: Electron + React + Express + SQLite knowledge database.
-- `intake-control/`: FastAPI intake gateway for links, chat messages, OCR/transcription workflows, and storage sinks.
+项目包含两个可运行部分：
 
-The stable integration boundary is:
+- `lucas-database/`：Electron + React + Express + SQLite 的本地知识数据库。
+- `intake-control/`：FastAPI intake 网关，用于链接、聊天消息、OCR、转写流程和存储写入。
+
+稳定集成边界是：
 
 ```text
 ComposedCardV1 -> POST /api/cards/ingest
 ```
 
-## Quick Start
+## 快速开始
 
-Requirements:
+### 环境要求
 
 - Windows 10/11
-- Node.js `22.5.0` or newer
-- Python `3.10` or newer
+- Node.js `22.5.0` 或更新版本
+- Python `3.10` 或更新版本
 - Git
 
-Install dependencies:
+### 安装依赖
 
 ```powershell
 .\scripts\setup-dev.ps1
 ```
 
-The setup script installs Node dependencies, creates `intake-control/.venv`, installs Python dependencies, and creates local config files from safe examples when they do not already exist.
+这个脚本会安装 Node 依赖，创建 `intake-control/.venv`，安装 Python 依赖，并在缺少本地配置时从安全示例文件生成配置。
 
-For local development, it also creates `intake-control/.env` with `LUCAS_DB_API_KEY=lucas-local-dev-token` if no key is present. This matches the database API's default development token for a fresh local database. Change it through the database settings or environment variables before sharing a machine or exposing the service.
+开发模式下，它还会在 `intake-control/.env` 中创建 `LUCAS_DB_API_KEY=lucas-local-dev-token`。这个值匹配全新本地数据库的默认开发 token。共享机器或暴露服务前，请通过数据库设置或环境变量更换 token。
 
-Start the database app:
+### 启动数据库
 
 ```powershell
 .\scripts\dev-database.ps1
 ```
 
-Open:
+打开：
 
 ```text
 http://127.0.0.1:5173
 ```
 
-Start the intake UI/API in another terminal:
+### 启动 Intake UI/API
+
+另开一个 PowerShell：
 
 ```powershell
 .\scripts\dev-intake.ps1
 ```
 
-Open:
+打开：
 
 ```text
 http://127.0.0.1:3963/ui
 ```
 
-Or start both in hidden PowerShell windows:
+也可以用隐藏 PowerShell 窗口同时启动两部分：
 
 ```powershell
 .\scripts\dev-all.ps1
 ```
 
-## What Works After Clone
+## Clone 后默认可用的能力
 
-- AntTrail Database starts locally.
-- SQLite database is created automatically under `lucas-database/data/`.
-- The browser UI can create, edit, search, attach files, and view graph data.
-- Retrieval/indexing routes run with the default mock embedding provider and mock vector store.
-- Intake UI/API can start and show configuration/status screens.
-- Basic chat and dry-run link flows can run without private keys.
+- AntTrail Database 可以在本机启动。
+- SQLite 数据库会自动创建在 `lucas-database/data/`。
+- 数据库浏览器 UI 可以创建、编辑、搜索、上传附件，并查看图谱数据。
+- 检索/索引接口默认使用 mock embedding provider 和 mock vector store，方便先跑起来。
+- Intake UI/API 可以启动，并显示配置和状态页面。
+- 基础聊天和 dry-run 链接流程可以在没有私有 key 的情况下运行。
 
-## Project Status
+## 项目状态
 
-AntTrail is an early local-first source project. It is useful today, but some advanced workflows still depend on optional local tools, API keys, model setup, and further quality improvements.
+AntTrail 目前是一个早期的本地优先源码项目。核心路径已经可以运行，但部分高级流程仍依赖可选本地工具、API Key、模型文件和后续质量优化。
 
-- Known limitations: `docs/KNOWN_LIMITATIONS.md`
-- Roadmap: `docs/ROADMAP.md`
-- Optional dependencies: `docs/OPTIONAL_DEPENDENCIES.md`
+- 已知限制：`docs/KNOWN_LIMITATIONS.md`
+- 路线图：`docs/ROADMAP.md`
+- 可选依赖：`docs/OPTIONAL_DEPENDENCIES.md`
 
-## Optional Features
+## 可选功能
 
-Some workflows require local tools or API keys:
+下面这些能力需要额外配置本地工具、模型文件或 API Key：
 
-- AI card composition requires a configured model provider/API key.
-- SiYuan writing requires a SiYuan endpoint and token.
-- Douyin transcription requires `ffmpeg`, `dyt`, `whisper-cli`, and a Whisper model.
-- OCR requires RapidOCR plus `ffmpeg`/`ffprobe` for video frame sampling.
-- Real BGE-M3 retrieval requires an optional local `.venv-bge-m3` environment and BGE-M3 model files.
-- WeChat bridge integration requires a compatible third-party bridge package or your own bridge adapter. The GitHub source release does not include copied packages under `wechat-bridge/vendor/`.
+- AI 写卡：需要配置模型提供商和 API Key。
+- SiYuan 写入：需要 SiYuan endpoint 和 token。
+- 抖音/视频转写：需要 `ffmpeg`、`dyt`、`whisper-cli` 和 Whisper 模型文件。
+- OCR：需要 RapidOCR；视频抽帧还需要 `ffmpeg`/`ffprobe`。
+- 真实 BGE-M3 检索：需要可选的 `.venv-bge-m3` 环境和 BGE-M3 模型文件。
+- 微信桥：需要兼容的第三方桥包，或你自己的桥接 adapter。GitHub 源码版不会包含 `wechat-bridge/vendor/` 下复制来的第三方包。
+- 平台网页授权：需要用户在本机授权浏览器中自行登录。仓库不会包含你的 cookies、登录态或浏览器 profile。
 
-Without those optional dependencies, the core database and local UI still run. See `docs/OPTIONAL_DEPENDENCIES.md` for environment variables and setup notes.
+没有这些可选依赖时，核心数据库和本地 UI 仍然可以运行。具体环境变量和安装说明见 `docs/OPTIONAL_DEPENDENCIES.md`。
 
-## Local Configuration
+## 本地配置
 
-Safe example files are tracked:
+仓库会跟踪安全示例文件：
 
 ```text
 intake-control/config/ai_layer.example.json
@@ -103,7 +108,7 @@ intake-control/config/link_pipeline.example.json
 intake-control/config/taxonomy_tree.example.json
 ```
 
-Machine-local files are generated by `setup-dev.ps1` or by the UI and are ignored by git:
+机器本地文件由 `setup-dev.ps1` 或 UI 生成，并被 git 忽略：
 
 ```text
 intake-control/.env
@@ -112,11 +117,11 @@ intake-control/config/storage.local.json
 intake-control/config/link_pipeline.json
 ```
 
-Do not commit real API keys, tokens, local database files, attachments, or job output.
+不要提交真实 API Key、token、本地数据库、附件、登录态、任务输出或模型缓存。
 
-## Common Commands
+## 常用命令
 
-Database only:
+只启动数据库：
 
 ```powershell
 Push-Location .\lucas-database
@@ -125,7 +130,7 @@ npm run dev
 Pop-Location
 ```
 
-Intake only:
+只启动 Intake：
 
 ```powershell
 Push-Location .\intake-control
@@ -133,46 +138,48 @@ Push-Location .\intake-control
 Pop-Location
 ```
 
-Health checks:
+健康检查：
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:8765/api/health
 Invoke-RestMethod http://127.0.0.1:3963/health
 ```
 
-Check whether the repository is safe to publish:
+检查仓库是否适合发布到 GitHub：
 
 ```powershell
 .\scripts\check-github-ready.ps1
 ```
 
-## Git Hygiene
+## Git 发布注意事项
 
-This repository intentionally does not track local runtime data, including:
+这个仓库刻意不跟踪本地运行数据，包括：
 
 - `node_modules/`
-- Python virtual environments
+- Python 虚拟环境
 - `.env`
 - `*.local.json`
-- SQLite databases
-- attachments
-- logs
-- runtime job output
+- SQLite 数据库
+- 附件
+- 日志
+- runtime job 输出
 - agent-only memory/skills
-- copied third-party runtime packages under `wechat-bridge/vendor/`
+- `wechat-bridge/vendor/` 下复制来的第三方运行包
+- cookies、网页登录态、二维码、账号数据
 
-Before uploading to GitHub, run:
+上传到 GitHub 前请运行：
 
 ```powershell
 .\scripts\check-github-ready.ps1
 ```
 
-Then initialize git and add files normally:
+正常提交流程：
 
 ```powershell
-git init
 git add .
 git status
+git commit -m "Your commit message"
+git push
 ```
 
-The status should not include databases, logs, `node_modules`, virtual environments, local config, runtime job output, or agent memory files.
+`git status` 中不应该出现数据库、日志、`node_modules`、虚拟环境、本地配置、runtime job 输出、登录态或 agent memory 文件。
