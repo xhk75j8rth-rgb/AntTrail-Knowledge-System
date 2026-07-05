@@ -15,7 +15,7 @@
 建议新建一个大项目外壳目录，例如：
 
 ```text
-C:\Users\pppppqr\Desktop\Lucas-Knowledge-System\
+<workspace-root>\
   intake-control\
   lucas-database\
   docs\
@@ -27,8 +27,8 @@ C:\Users\pppppqr\Desktop\Lucas-Knowledge-System\
 目录含义：
 
 ```text
-intake-control\   当前 C:\Users\pppppqr\Desktop\Lucas-Knowledge-DB-Lab
-lucas-database\   当前 C:\Users\pppppqr\Desktop\求索数据库
+intake-control\   当前 <old-intake-project>
+lucas-database\   当前 <old-database-project>
 docs\             大项目级别总览、架构边界、操作索引
 scripts\          大项目级别启动脚本，只负责 cd 到对应子项目后启动
 AGENTS.md         大项目级 agent 路由说明

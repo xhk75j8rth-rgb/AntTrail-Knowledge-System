@@ -18,7 +18,7 @@
 ```powershell
 $env:LUCAS_EMBEDDING_PROVIDER='bge-m3'
 $env:LUCAS_BGE_M3_PYTHON='.\.venv-bge-m3\Scripts\python.exe'
-$env:BGE_M3_MODEL_DIR='C:\Users\pppppqr\.cache\huggingface\hub\models--BAAI--bge-m3\snapshots\5617a9f61b028005a4858fdac845db406aefb181'
+$env:BGE_M3_MODEL_DIR='<local-huggingface-cache>\models--BAAI--bge-m3\snapshots\<snapshot-id>'
 npm run start:api
 ```
 

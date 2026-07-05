@@ -56,7 +56,7 @@ Chat Gateway 普通问答里，数据库 RAG 显示为失败或不可用；直�
 
 ### 原因
 
-数据库 API 端口和路由本身正常，`127.0.0.1:8765` 指向 MergeTest `lucas-database\data\lucas.db`。真正失败点是 BGE-M3 embedding worker：当前 MergeTest 项目缺少 `lucas-database\.venv-bge-m3\Scripts\python.exe`，而旧 `C:\Users\pppppqr\Desktop\求索数据库\.venv-bge-m3` 仍存在且可用，说明项目迁移时漏带本地向量模型运行环境。
+数据库 API 端口和路由本身正常，`127.0.0.1:8765` 指向 MergeTest `lucas-database\data\lucas.db`。真正失败点是 BGE-M3 embedding worker：当前 MergeTest 项目缺少 `lucas-database\.venv-bge-m3\Scripts\python.exe`，而旧 `<old-database-project>\.venv-bge-m3` 仍存在且可用，说明项目迁移时漏带本地向量模型运行环境。
 
 另一个误导项是 `intake-control\.env` 仍保留旧 `LUCAS_DB_BASE_URL=http://127.0.0.1:8768`，虽然 Chat Gateway RAG 实际通过 `storage_config.py` 读取 `config/storage.local.json` 的 `8765`，但该旧值会误导排障。
 
@@ -83,7 +83,7 @@ Invoke-RestMethod -Method Post http://127.0.0.1:3963/api/chat/messages ...
 
 ### 后续规则
 
-- MergeTest 运行层不得再依赖 `C:\Users\pppppqr\Desktop\求索数据库`；旧目录只作为迁移源和历史对照。
+- MergeTest 运行层不得再依赖 `<old-database-project>`；旧目录只作为迁移源和历史对照。
 - RAG 报 `INTERNAL_ERROR` 时，要先区分端口/认证问题和 embedding worker 问题；`BGE-M3 python executable not found` 属于本地模型运行环境缺失，不是数据库 API 未连接。
 - 文档、UI 占位符和启动示例应优先使用当前 live 端口 `8765`。
 
@@ -456,7 +456,7 @@ rg -n "autoplay-policy=no-user-gesture-required|video\.play\(|audio\.play\(|\.pl
 
 ### 问题
 
-Lucas 指出数据库目录就在 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\lucas-database`，但实际 live 运行还停在旧 `C:\Users\pppppqr\Desktop\求索数据库` 副本上，`GET /api/health` 也把 `database.path` 报成旧目录，说明运行层没有真正合并。
+Lucas 指出数据库目录就在 `<repo-root>\lucas-database`，但实际 live 运行还停在旧 `<old-database-project>` 副本上，`GET /api/health` 也把 `database.path` 报成旧目录，说明运行层没有真正合并。
 
 ### 原因
 
@@ -464,15 +464,15 @@ Lucas 指出数据库目录就在 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-Syst
 
 ### 修复
 
-- 将旧 `C:\Users\pppppqr\Desktop\求索数据库\data` 复制到 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\lucas-database\data`。
+- 将旧 `<old-database-project>\data` 复制到 `<repo-root>\lucas-database\data`。
 - 停止旧 8765 / 5173 进程。
 - 从 MergeTest `lucas-database` 目录重新启动 API 和 Vite。
 
 ### 验证
 
-- `GET http://127.0.0.1:8765/api/health` 返回 `database.path=C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\lucas-database\data\lucas.db`。
+- `GET http://127.0.0.1:8765/api/health` 返回 `database.path=<repo-root>\lucas-database\data\lucas.db`。
 - `GET http://127.0.0.1:5173/` 返回 MergeTest 前端。
-- 监听进程 command line 都指向 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\lucas-database`。
+- 监听进程 command line 都指向 `<repo-root>\lucas-database`。
 
 ### 后续规则
 
@@ -483,7 +483,7 @@ Lucas 指出数据库目录就在 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-Syst
 
 ### 问题
 
-Lucas 要求最终从 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\intake-control` 启动，但现场同时存在多个 uvicorn：`3963` 仍服务 DB-Lab 指纹，`3964/3965` 服务 MergeTest 指纹。MergeTest 服务起初 `GET /api/system/status` 为 degraded，原因是新项目目录没有本机 `.env`，Brain key 检测缺失。
+Lucas 要求最终从 `<repo-root>\intake-control` 启动，但现场同时存在多个 uvicorn：`3963` 仍服务 DB-Lab 指纹，`3964/3965` 服务 MergeTest 指纹。MergeTest 服务起初 `GET /api/system/status` 为 degraded，原因是新项目目录没有本机 `.env`，Brain key 检测缺失。
 
 ### 原因
 
@@ -493,7 +493,7 @@ Lucas 要求最终从 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest
 
 - 为 `server/chat_api.py` 的 `/api/system/status` 增加 `runtime.project_root`、`runtime.config_path`、`runtime.runtime_dir`、`runtime.ui_path`，后续可直接确认 live 项目根。
 - 将 DB-Lab 的本机 `.env`、`config/storage.local.json`、`config/link_pipeline.json` 迁到 MergeTest `intake-control`。这些文件均受 `.gitignore` 保护；复盘只记录 key 名称存在，不记录任何 key/token 值。
-- 停止旧 DB-Lab `3963` uvicorn 和临时 `3964/3965` staging uvicorn，从 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\intake-control` 启动新的 `3963` live 服务。
+- 停止旧 DB-Lab `3963` uvicorn 和临时 `3964/3965` staging uvicorn，从 `<repo-root>\intake-control` 启动新的 `3963` live 服务。
 
 ### 验证
 
@@ -514,7 +514,7 @@ Lucas 要求最终从 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest
 
 ### 问题
 
-Lucas 发现当前工作目录和旧项目副本之间出现版本错位：旧 DB-Lab 副本里已经存在 Agent 配置、进入数据库按钮、多 Brain 数据库目标等 UI/存储配置改动，但真实目标应是 `C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\intake-control`。同时，存储页“测试连接/测试链接”容易再次退化成打开页面，而不是做 API 连通性探测。
+Lucas 发现当前工作目录和旧项目副本之间出现版本错位：旧 DB-Lab 副本里已经存在 Agent 配置、进入数据库按钮、多 Brain 数据库目标等 UI/存储配置改动，但真实目标应是 `<repo-root>\intake-control`。同时，存储页“测试连接/测试链接”容易再次退化成打开页面，而不是做 API 连通性探测。
 
 ### 原因
 
@@ -589,7 +589,7 @@ Brain 主库返回 `422 QUALITY_GATE_FAILED` 是因为卡片仍是非正式 `ext
 python -B -m py_compile tools\run_link_job.py tests\test_chat_gateway.py
 python -B -m unittest tests.test_chat_gateway.ChatGatewayTests.test_visual_platform_reader_failure_triggers_web_image_ocr_without_image_count tests.test_chat_gateway.ChatGatewayTests.test_format_ocr_image_evidence_uses_captured_frame_paths -v
 python -B -m unittest tests.test_chat_gateway -v
-$env:PYTHONUTF8='1'; python C:\Users\pppppqr\.codex\skills\.system\skill-creator\scripts\quick_validate.py .agents\skills\link-intake-classifier
+$env:PYTHONUTF8='1'; python <codex-home>\skills\.system\skill-creator\scripts\quick_validate.py .agents\skills\link-intake-classifier
 ```
 
 结果：
@@ -722,7 +722,7 @@ python -B -m py_compile chat_gateway\link_extractor.py chat_gateway\handlers\lin
 python -B -m unittest tests.test_chat_gateway.ChatGatewayTests.test_link_context_text_keeps_non_url_material tests.test_chat_gateway.ChatGatewayTests.test_single_link_runner_receives_user_supplied_source_text tests.test_chat_gateway.ChatGatewayTests.test_link_runner_passes_source_text_file_to_child_process tests.test_chat_gateway.ChatGatewayTests.test_http_api_async_link_returns_realtime_batch_without_running_real_task tests.test_chat_gateway.ChatGatewayTests.test_material_quality_gate_allows_user_supplied_text_as_primary_material tests.test_chat_gateway.ChatGatewayTests.test_douyin_low_material_can_trigger_web_image_ocr_fallback -v
 python -B -m unittest tests.test_chat_gateway -v
 python -B -m unittest tests.test_lucas_database_sink tests.test_storage_submit_api -v
-$env:PYTHONUTF8='1'; python C:\Users\pppppqr\.codex\skills\.system\skill-creator\scripts\quick_validate.py .agents\skills\link-intake-classifier
+$env:PYTHONUTF8='1'; python <codex-home>\skills\.system\skill-creator\scripts\quick_validate.py .agents\skills\link-intake-classifier
 ```
 
 结果：

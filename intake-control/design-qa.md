@@ -21,8 +21,8 @@
 - Browser check: queue toolbar button restored the panel.
 - Browser check: expand/collapse toggled `aria-expanded` and `.is-collapsed`.
 
-source visual truth path: `C:\Users\pppppqr\AppData\Local\Temp\codex-clipboard-e2980c5c-fbdc-4d4d-8e4d-74aa92828626.png`
-implementation screenshot path: `C:\Users\pppppqr\AppData\Local\Temp\lucas-queue-ui-final.png`
+source visual truth path: `<local-temp>\codex-clipboard-e2980c5c-fbdc-4d4d-8e4d-74aa92828626.png`
+implementation screenshot path: `<local-temp>\lucas-queue-ui-final.png`
 viewport: implementation verified at 1280x720 default in-app browser.
 state: dry-run two-link queue expanded above the composer.
 final result: passed
@@ -47,11 +47,11 @@ final result: passed
 - Tune scrollbar styling for Chromium/WebKit if the UI is usually demoed in a 1280x720 embedded browser.
 - Add a larger desktop screenshot after opening the page in a full-width external browser if exact 1680x924 presentation is needed.
 
-source visual truth path: `C:\Users\pppppqr\AppData\Local\Temp\codex-clipboard-390c2b8b-53bc-46db-9737-41ddc51300fd.png`
-implementation screenshot path: `C:\Users\pppppqr\AppData\Local\Temp\lucas-ui-final.png`
+source visual truth path: `<local-temp>\codex-clipboard-390c2b8b-53bc-46db-9737-41ddc51300fd.png`
+implementation screenshot path: `<local-temp>\lucas-ui-final.png`
 viewport: implementation verified at 1280x720 default in-app browser; reference visual is 1680x924.
 state: default chat workspace with settings drawer closed.
-full-view comparison evidence: `C:\Users\pppppqr\AppData\Local\Temp\lucas-ui-comparison-final.png`
+full-view comparison evidence: `<local-temp>\lucas-ui-comparison-final.png`
 focused region comparison evidence: not needed; the visible fidelity questions were layout-level and all text/assets were readable in the full-view comparison.
 patches made since previous QA pass: fixed workspace height, reduced chat density, added UI asset route, added drawer interactions, reset temporary viewport.
 final result: passed

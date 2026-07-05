@@ -17,16 +17,16 @@ The server reads newline-delimited JSON-RPC messages from stdio.
 ## Codex
 
 ```powershell
-codex mcp add lucas-retrieval -- node C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\lucas-database\integrations\mcp-lucas-retrieval\server.mjs
+codex mcp add lucas-retrieval -- node <repo-root>\lucas-database\integrations\mcp-lucas-retrieval\server.mjs
 codex mcp get lucas-retrieval
 ```
 
-For non-interactive `codex exec` experiments, set approval for this local server in `C:\Users\pppppqr\.codex\config.toml`:
+For non-interactive `codex exec` experiments, set approval for this local server in `<codex-home>\config.toml`:
 
 ```toml
 [mcp_servers.lucas-retrieval]
 command = "node"
-args = ['C:\Users\pppppqr\Desktop\Lucas-Knowledge-System-MergeTest\lucas-database\integrations\mcp-lucas-retrieval\server.mjs']
+args = ['<repo-root>\lucas-database\integrations\mcp-lucas-retrieval\server.mjs']
 startup_timeout_sec = 20.0
 tool_timeout_sec = 120.0
 default_tools_approval_mode = "approve"

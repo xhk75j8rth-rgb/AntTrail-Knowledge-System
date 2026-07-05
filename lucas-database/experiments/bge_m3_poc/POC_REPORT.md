@@ -26,7 +26,7 @@ Status: success.
 
 - Model: `BAAI/bge-m3`.
 - Local snapshot:
-  `C:\Users\pppppqr\.cache\huggingface\hub\models--BAAI--bge-m3\snapshots\5617a9f61b028005a4858fdac845db406aefb181`
+  `<local-huggingface-cache>\models--BAAI--bge-m3\snapshots\<snapshot-id>`
 - Required model weight file: `pytorch_model.bin`.
 - Local weight file size: `2,271,145,830` bytes, about 2.12 GiB.
 - Download result: completed.

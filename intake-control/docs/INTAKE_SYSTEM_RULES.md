@@ -85,10 +85,17 @@ scripts/transcribe_douyin_once.ps1
 
 依赖：
 
-- `C:\Users\pppppqr\tools\douyin-transcriber\dyt.exe`
+- `<path-to-dyt.exe>`
 - `ffmpeg`
-- `C:\Users\pppppqr\tools\whisper.cpp\Release\whisper-cli.exe`
-- `C:\Users\pppppqr\.cache\whisper.cpp\models\ggml-base.bin`
+- `<path-to-whisper-cli.exe>`
+- `<path-to-whisper-model>`
+
+推荐用环境变量配置本机路径：
+
+- `LUCAS_DYT_EXE`
+- `LUCAS_WHISPER_CLI`
+- `LUCAS_WHISPER_MODEL_PATH`
+- `LUCAS_RAPIDOCR_PYTHON`
 
 协议：
 

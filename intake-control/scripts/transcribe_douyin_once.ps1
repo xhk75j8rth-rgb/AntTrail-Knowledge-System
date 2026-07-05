@@ -11,10 +11,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-$DytExe = "C:\Users\pppppqr\tools\douyin-transcriber\dyt.exe"
-$WhisperCli = "C:\Users\pppppqr\tools\whisper.cpp\Release\whisper-cli.exe"
-$WhisperDir = Split-Path -Parent $WhisperCli
-$ModelPath = "C:\Users\pppppqr\.cache\whisper.cpp\models\ggml-base.bin"
+$DytExe = if ($env:LUCAS_DYT_EXE) { $env:LUCAS_DYT_EXE } elseif ($env:DYT_EXE) { $env:DYT_EXE } else { "dyt" }
+$WhisperCli = if ($env:LUCAS_WHISPER_CLI) { $env:LUCAS_WHISPER_CLI } elseif ($env:WHISPER_CLI) { $env:WHISPER_CLI } else { "whisper-cli" }
+$WhisperDir = if (Test-Path -LiteralPath $WhisperCli -PathType Leaf) { Split-Path -Parent $WhisperCli } else { "" }
+$ModelPath = if ($env:LUCAS_WHISPER_MODEL_PATH) { $env:LUCAS_WHISPER_MODEL_PATH } elseif ($env:WHISPER_MODEL_PATH) { $env:WHISPER_MODEL_PATH } else { "__missing_whisper_model__" }
 $TempRoot = Join-Path $env:TEMP "LucasTranscribe"
 $RunId = "{0}-{1}" -f (Get-Date -Format "yyyyMMdd-HHmmss"), ([guid]::NewGuid().ToString("N").Substring(0, 8))
 $RunDir = Join-Path $TempRoot $RunId
@@ -28,6 +28,14 @@ function Write-Log {
 function Test-CommandAvailable {
   param([string]$Name)
   return $null -ne (Get-Command $Name -ErrorAction SilentlyContinue)
+}
+
+function Test-ExecutableAvailable {
+  param([string]$PathOrCommand)
+  if (Test-Path -LiteralPath $PathOrCommand -PathType Leaf) {
+    return $true
+  }
+  return Test-CommandAvailable $PathOrCommand
 }
 
 function Assert-FileExists {
@@ -48,7 +56,10 @@ try {
   }
 
   $dytExists = Test-Path -LiteralPath $DytExe -PathType Leaf
-  $whisperExists = Test-Path -LiteralPath $WhisperCli -PathType Leaf
+  if (-not $dytExists) {
+    $dytExists = Test-ExecutableAvailable $DytExe
+  }
+  $whisperExists = Test-ExecutableAvailable $WhisperCli
   $modelExists = Test-Path -LiteralPath $ModelPath -PathType Leaf
   $ffmpegAvailable = Test-CommandAvailable "ffmpeg"
   $tempAvailable = Test-Path -LiteralPath $env:TEMP -PathType Container
@@ -60,8 +71,12 @@ try {
   Write-Log "  ffmpeg: $ffmpegAvailable"
   Write-Log "  TEMP: $tempAvailable ($env:TEMP)"
 
-  Assert-FileExists "dyt.exe" $DytExe
-  Assert-FileExists "whisper-cli.exe" $WhisperCli
+  if (-not $dytExists) {
+    throw "dyt not found. Set LUCAS_DYT_EXE or put dyt on PATH."
+  }
+  if (-not $whisperExists) {
+    throw "whisper-cli not found. Set LUCAS_WHISPER_CLI or put whisper-cli on PATH."
+  }
   Assert-FileExists "Whisper model" $ModelPath
   if (-not $ffmpegAvailable) {
     throw "ffmpeg not found in PATH."
@@ -94,7 +109,9 @@ try {
     throw "dyt does not expose required local transcription flags. Need adapter changes before real transcription."
   }
 
-  $env:Path = "$WhisperDir;$env:Path"
+  if ($WhisperDir) {
+    $env:Path = "$WhisperDir;$env:Path"
+  }
 
   Write-Log "Starting one-shot local transcription with dyt."
   Write-Log "Transcript temp path: $TranscriptPath"

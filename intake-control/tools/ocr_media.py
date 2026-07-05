@@ -12,7 +12,11 @@ from pathlib import Path
 from typing import Any
 
 
-RAPIDOCR_PYTHON = Path(r"C:\Users\pppppqr\tools\rapidocr-venv\Scripts\python.exe")
+RAPIDOCR_PYTHON = Path(
+    os.environ.get("LUCAS_RAPIDOCR_PYTHON")
+    or os.environ.get("RAPIDOCR_PYTHON")
+    or sys.executable
+)
 OCR_MATERIAL_SCHEMA_NAME = "OCRMaterialV1"
 OCR_MATERIAL_SCHEMA_VERSION = "1"
 

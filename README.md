@@ -86,11 +86,11 @@ Some workflows require local tools or API keys:
 - AI card composition requires a configured model provider/API key.
 - SiYuan writing requires a SiYuan endpoint and token.
 - Douyin transcription requires `ffmpeg`, `dyt`, `whisper-cli`, and a Whisper model.
-- OCR requires the local RapidOCR setup used by `intake-control/tools/ocr_media.py`.
-- Real BGE-M3 retrieval requires an optional local `.venv-bge-m3` environment and model files.
+- OCR requires RapidOCR plus `ffmpeg`/`ffprobe` for video frame sampling.
+- Real BGE-M3 retrieval requires an optional local `.venv-bge-m3` environment and BGE-M3 model files.
 - WeChat bridge integration requires a compatible third-party bridge package or your own bridge adapter. The GitHub source release does not include copied packages under `wechat-bridge/vendor/`.
 
-Without those optional dependencies, the core database and local UI still run.
+Without those optional dependencies, the core database and local UI still run. See `docs/OPTIONAL_DEPENDENCIES.md` for environment variables and setup notes.
 
 ## Local Configuration
 

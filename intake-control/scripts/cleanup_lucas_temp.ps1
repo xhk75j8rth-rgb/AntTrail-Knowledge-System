@@ -64,10 +64,10 @@ $allowedRoots += @(
 )
 
 $blockedRoots = @(
-  "C:\Users\pppppqr\tools",
-  "C:\Users\pppppqr\.cache",
-  "C:\Users\pppppqr\Desktop\Lucas-SiYuan-Codex"
-)
+  $env:LUCAS_TOOLS_DIR,
+  $env:LUCAS_MODEL_CACHE_DIR,
+  $env:LUCAS_LEGACY_PROJECT_ROOT
+) | Where-Object { -not [string]::IsNullOrWhiteSpace($_) }
 
 $cutoff = (Get-Date).AddHours(-1 * $OlderThanHours)
 Write-Log "Lucas temp cleanup"

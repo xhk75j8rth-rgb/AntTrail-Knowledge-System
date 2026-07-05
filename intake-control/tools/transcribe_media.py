@@ -5,6 +5,7 @@ import argparse
 import json
 import re
 import os
+import shutil
 import subprocess
 import sys
 import urllib.request
@@ -21,10 +22,14 @@ if hasattr(sys.stderr, "reconfigure"):
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TRANSCRIBE_SCRIPT = PROJECT_ROOT / "scripts" / "transcribe_douyin_once.ps1"
-DYT_EXE = Path(r"C:\Users\pppppqr\tools\douyin-transcriber\dyt.exe")
-WHISPER_CLI = Path(r"C:\Users\pppppqr\tools\whisper.cpp\Release\whisper-cli.exe")
+DYT_EXE = Path(os.environ.get("LUCAS_DYT_EXE") or os.environ.get("DYT_EXE") or "dyt")
+WHISPER_CLI = Path(os.environ.get("LUCAS_WHISPER_CLI") or os.environ.get("WHISPER_CLI") or "whisper-cli")
 WHISPER_DIR = WHISPER_CLI.parent
-MODEL_PATH = Path(r"C:\Users\pppppqr\.cache\whisper.cpp\models\ggml-base.bin")
+MODEL_PATH = Path(
+    os.environ.get("LUCAS_WHISPER_MODEL_PATH")
+    or os.environ.get("WHISPER_MODEL_PATH")
+    or "__missing_whisper_model__"
+)
 VIDEO_SUFFIXES = {".mp4", ".mov", ".m4v", ".webm", ".mkv"}
 MAX_VIDEO_FALLBACK_BYTES = 80 * 1024 * 1024
 MAX_AUDIO_FALLBACK_BYTES = 80 * 1024 * 1024
@@ -48,6 +53,10 @@ def run_text(cmd: list[str], **kwargs: Any) -> subprocess.CompletedProcess[str]:
         errors="replace",
         **kwargs,
     )
+
+
+def command_available(command: Path) -> bool:
+    return command.exists() or shutil.which(str(command)) is not None
 
 
 def is_music_only(transcript: str) -> bool:
@@ -215,8 +224,8 @@ def base_result(args: argparse.Namespace) -> dict[str, Any]:
         "failed_reason": None,
         "dependency_check": {
             "script_exists": TRANSCRIBE_SCRIPT.exists(),
-            "dyt_exists": DYT_EXE.exists(),
-            "whisper_cli_exists": WHISPER_CLI.exists(),
+            "dyt_exists": command_available(DYT_EXE),
+            "whisper_cli_exists": command_available(WHISPER_CLI),
             "model_exists": MODEL_PATH.exists(),
             "ffmpeg_available": False,
         },
@@ -650,7 +659,7 @@ def local_whisper_from_audio(audio_path: Path, output_base: Path, timeout_sec: i
     if not audio_path.exists():
         fallback["error"] = f"audio_path missing: {audio_path}"
         return fallback, ""
-    if not WHISPER_CLI.exists():
+    if not command_available(WHISPER_CLI):
         fallback["error"] = f"whisper-cli missing: {WHISPER_CLI}"
         return fallback, ""
     if not MODEL_PATH.exists():
@@ -706,7 +715,7 @@ def local_whisper_from_video(video_path: str, run_dir: Path, timeout_sec: int) -
     if not video_path or not Path(video_path).exists():
         fallback["error"] = "video_path missing for local whisper fallback"
         return fallback, ""
-    if not WHISPER_CLI.exists():
+    if not command_available(WHISPER_CLI):
         fallback["error"] = f"whisper-cli missing: {WHISPER_CLI}"
         return fallback, ""
     if not MODEL_PATH.exists():
