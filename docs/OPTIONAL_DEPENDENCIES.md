@@ -13,6 +13,7 @@ The base repository is designed to clone, install, and run without private data 
 | OCR | Local RapidOCR-compatible setup | No | Image-only intake may fail or produce low-confidence cards |
 | Real semantic retrieval | Embedding environment, model files, vector-store setup | No | The default clone uses mock embedding/vector behavior |
 | BGE-M3 retrieval | `.venv-bge-m3` and model files | No | BGE-M3 provider cannot run |
+| Platform web authorization | User logs in through the local authorization browser profile | No | Douyin/Toutiao/Xiaohongshu gated content may need the user to authorize locally |
 
 ## Media, OCR, And Transcription
 
@@ -105,6 +106,22 @@ POST http://127.0.0.1:3963/api/chat/messages/async
 ```
 
 See `wechat-bridge/README.md` for the expected payload shape.
+
+## Platform Web Authorization
+
+Some source-reading flows can reuse a local browser profile after the user signs in through the UI authorization panel. This is used for platforms such as Douyin, Toutiao, and Xiaohongshu when public access is insufficient.
+
+The repository includes the authorization workflow code, but it does not include any account session:
+
+```text
+intake-control/runtime/browser_sessions/
+local browser profiles under the user's AppData directory
+cookies
+login state
+account data
+```
+
+Those files are local-only and ignored by git. Each user must click the authorization button and log in with their own account if a platform requires it.
 
 ## Why These Are Not Committed
 
