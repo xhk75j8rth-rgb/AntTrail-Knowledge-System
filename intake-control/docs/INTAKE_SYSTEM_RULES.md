@@ -73,6 +73,16 @@ Chat Gateway / 微信桥 / debug CLI
 - 正式卡材料已获取且质量门禁通过时，应进入配置的 Storage Sink 写入；如果没有既有分类但主题明确，且 `taxonomy_auto_create_from_proposal=true`，应使用 `CategoryCreateProposalV1` 的路径作为写入目标，而不是仅因分类树缺项堆到 `Inbox / 待分类`。
 - AI 根路径不是分类兜底。即使真实知识树快照里存在 `AI / ...` 路径，分类器也必须先确认材料有 AI / Agent / 模型 / 知识系统 / 工程化等域内证据；普通穿搭、服装搭配、防晒、妆容、护肤、旅行、美食等生活方式内容不能因为出现“内容”“视频”等泛词就写入 `AI / 内容生产`。当 `taxonomy_auto_create_from_proposal=true` 且主题明确时，应写入非 AI proposal 路径，例如 `生活方式 / 穿搭`、`生活方式 / 防晒`，而不是继续堆到 `Inbox / 待分类`。
 
+## Chat Gateway Database-First QA
+
+普通无链接知识问答必须先查 Lucas Database / AntTrail Database，而不是让模型先凭常识回答。例外只包括问候、确认、状态追问、配置问答、修订请求和无可搜索文本。
+
+- Chat Gateway 通过 HTTP 调用数据库 `POST /api/agent/retrieve`，生产问答不得依赖 MCP。
+- 用户口语问法要先抽取可检索主题，例如“告诉我关于民科的事情”应检索“民科”。
+- 检索命中可靠上下文时，模型只能依据数据库证据回答，并使用 `[Source n]` 标注来源。
+- 检索低置信、topic mismatch、超时或不可用时，必须确定性说明没有可靠命中或检索不可用；不得继续调用模型用通用知识补答案。
+- 配置类问题仍按本地配置事实回答，不走数据库 RAG。
+
 ## Douyin Level 3 Protocol
 
 抖音 Level 3 口播转写是当前稳定核心路径。
@@ -222,21 +232,19 @@ Level 5 评论增强是机会型增强能力。
 - `scripts/cleanup_lucas_temp.ps1` 只清理 TEMP 下 Lucas 相关临时目录。
 - 清理脚本不得清理工具目录、模型文件、SiYuan 内容或项目源码。
 
-## Issue Resolution Log Rule
+## Public Release Note Rule
 
-入库链路中已经定位并修复的问题，必须归档到 `docs/ISSUE_RESOLUTION_LOG.md`。
+发布仓只保留可公开、可复现的系统说明。已定位并修复的问题可以提炼成 README、API 文档或系统规则中的短说明，不上传私有排障日志、交接记录或 agent 记忆文件。
 
-记录内容应包含：
+公开说明只保留对用户和维护者有用的信息：
 
 - 问题现象；
 - 影响范围；
-- 根因；
-- 修复点；
+- 根因摘要；
+- 修复点摘要；
 - 验证命令和结果；
 - 残余风险；
 - 后续规则或建议。
-
-`docs/HANDOFF.md` 只保留当前交接所需的短指针，不承载完整复盘。不要把完整问题复盘写到不相关文档、聊天记录或临时文件里。
 
 ## Knowledge Card Format
 

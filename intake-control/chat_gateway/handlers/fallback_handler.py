@@ -153,6 +153,10 @@ def handle(event: MessageEvent) -> HandlerResponse:
         data["ai_config"] = reply.data["ai_config"]
     if "retrieval" in reply.data:
         data["retrieval"] = reply.data["retrieval"]
+    if "retrieval_plan" in reply.data:
+        data["retrieval_plan"] = reply.data["retrieval_plan"]
+    if "database_first_enforced" in reply.data:
+        data["database_first_enforced"] = reply.data["database_first_enforced"]
 
     return HandlerResponse(
         ok=reply.ok,

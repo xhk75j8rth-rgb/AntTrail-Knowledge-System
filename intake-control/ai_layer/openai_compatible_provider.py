@@ -7,6 +7,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from ai_layer.http_network import is_transient_network_error, retry_attempt_count, transient_network_error_detail
 from ai_layer.provider_schema import ModelResult
 
 
@@ -127,9 +128,24 @@ class OpenAICompatibleProvider:
             },
             method="POST",
         )
+        timeout_sec = int((metadata or {}).get("timeout_sec") or 60)
+        max_attempts = retry_attempt_count(metadata)
+        last_exc: BaseException | None = None
+        for attempt in range(1, max_attempts + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout_sec) as response:
+                    body = json.loads(response.read().decode("utf-8"))
+                break
+            except urllib.error.HTTPError as exc:
+                return self._failure(started, self._http_error_detail(exc))
+            except Exception as exc:
+                last_exc = exc
+                if not is_transient_network_error(exc) or attempt >= max_attempts:
+                    return self._failure(started, transient_network_error_detail(exc, attempts=attempt) if is_transient_network_error(exc) else str(exc))
+                time.sleep(min(0.8, 0.2 * attempt))
+        else:
+            return self._failure(started, transient_network_error_detail(last_exc or RuntimeError("network_error"), attempts=max_attempts))
         try:
-            with urllib.request.urlopen(req, timeout=int((metadata or {}).get("timeout_sec") or 60)) as response:
-                body = json.loads(response.read().decode("utf-8"))
             content = (((body.get("choices") or [{}])[0].get("message") or {}).get("content") or "")
             return ModelResult(
                 ok=True,
@@ -141,8 +157,6 @@ class OpenAICompatibleProvider:
                 raw_usage=body.get("usage") or {},
                 latency_ms=int((time.perf_counter() - started) * 1000),
             )
-        except urllib.error.HTTPError as exc:
-            return self._failure(started, self._http_error_detail(exc))
         except Exception as exc:
             return self._failure(started, str(exc))
 

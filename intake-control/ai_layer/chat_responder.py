@@ -67,10 +67,10 @@ class ChatResponder:
             clean_lines.append(line)
         return "\n".join(clean_lines).strip()
 
-    def _normalize_history(self, history: Any, *, limit: int = 12) -> list[dict[str, str]]:
+    def _normalize_history(self, history: Any, *, limit: int = 12) -> list[dict[str, Any]]:
         if not isinstance(history, list):
             return []
-        normalized: list[dict[str, str]] = []
+        normalized: list[dict[str, Any]] = []
         for item in history[-limit:]:
             if not isinstance(item, dict):
                 continue
@@ -81,10 +81,18 @@ class ChatResponder:
             content = self._clip(content, 900)
             if not content:
                 continue
-            normalized.append({"role": role, "text": content})
+            history_item: dict[str, Any] = {"role": role, "text": content}
+            data = item.get("data") if isinstance(item.get("data"), dict) else {}
+            if data:
+                history_item["data"] = data
+            for key in ("retrieval_plan", "retrieval"):
+                value = item.get(key)
+                if isinstance(value, dict):
+                    history_item[key] = value
+            normalized.append(history_item)
         return normalized
 
-    def _latest_note_title(self, history: list[dict[str, str]]) -> str:
+    def _latest_note_title(self, history: list[dict[str, Any]]) -> str:
         title_re = re.compile(r"^标题\s*[:：]\s*(.+)$")
         for item in reversed(history):
             if item["role"] != "assistant":
@@ -113,7 +121,7 @@ class ChatResponder:
                 return title
         return ""
 
-    def _has_recent_card_context(self, history: list[dict[str, str]]) -> bool:
+    def _has_recent_card_context(self, history: list[dict[str, Any]]) -> bool:
         if self._latest_note_title(history):
             return True
         markers = ("入库卡片", "知识卡", "这条卡片", "是否成功接入", "一句话摘要", "值得学习")
@@ -122,7 +130,7 @@ class ChatResponder:
                 return True
         return False
 
-    def _looks_like_revision_followup(self, text: str, history: list[dict[str, str]]) -> bool:
+    def _looks_like_revision_followup(self, text: str, history: list[dict[str, Any]]) -> bool:
         if not self._has_recent_card_context(history):
             return False
         return bool(re.search(
@@ -132,7 +140,7 @@ class ChatResponder:
             str(text or ""),
         ))
 
-    def _note_revision_reply(self, history: list[dict[str, str]], request_text: str = "") -> tuple[str, dict[str, Any]]:
+    def _note_revision_reply(self, history: list[dict[str, Any]], request_text: str = "") -> tuple[str, dict[str, Any]]:
         candidate_title = self._title_from_revision_text(request_text) or self._latest_note_title(history)
         current_request = self._strip_unreliable_history_lines(request_text)
         current_request = self._clip(current_request, 160) if current_request else ""
@@ -157,7 +165,7 @@ class ChatResponder:
             "你直接说要删掉、替换或补充的内容就行，我会把它整理成修订意图，后续再走修订版和质量门禁。"
         )
 
-    def _build_revision_prompt(self, text: str, history: list[dict[str, str]], revision_data: dict[str, Any]) -> str:
+    def _build_revision_prompt(self, text: str, history: list[dict[str, Any]], revision_data: dict[str, Any]) -> str:
         parts = [
             "你正在回复 Lucas 知识库控制台里的笔记修订对话。",
             "这不是普通闲聊，也不是实际写入动作；当前目标是自然地承接用户的修改意见。",
@@ -218,9 +226,7 @@ class ChatResponder:
                 f"label={ai_provider.get('label') or 'unknown'}；"
                 f"model={ai_provider.get('model') or 'unknown'}；"
                 f"base_url={ai_provider.get('base_url') or 'unknown'}；"
-                f"api_key_present={'yes' if ai_provider.get('api_key_present') else 'no'}；"
-                f"api_key_source={ai_provider.get('api_key_source') or 'unknown'}；"
-                f"connection_status={ai_provider.get('connection_status') or 'not_tested'}。"
+                f"api_key_present={'yes' if ai_provider.get('api_key_present') else 'no'}。"
             )
         else:
             lines.append(f"AI配置：读取失败（{ai.get('error') or 'unknown'}）。")
@@ -276,7 +282,6 @@ class ChatResponder:
             r"(勾选|已选).*(siyuan|思源|brain|数据库|知识库)",
             r"(有哪些|哪些|什么).*(知识库|数据库).*(接入|连接|配置|目标)",
             r"(知识库|数据库).*(接入|连接).*(有哪些|哪些|什么|配置|目标)",
-            r"(没有|没|未).*(写入|入库).*(本机)?(数据库|知识库|anttrail|brain)",
         ]
         return any(re.search(pattern, value) for pattern in patterns)
 
@@ -341,10 +346,12 @@ class ChatResponder:
 
     def _clean_topic_candidate(self, text: str) -> str:
         value = self._strip_outer_quotes(text)
+        value = value.replace("芝士包", "知识包")
         value = re.sub(r"^[：:，,。.\s]+", "", value)
         value = re.sub(r"[?？!！。.,，;；:：]+$", "", value).strip()
         value = re.sub(r"^(?:一下|下|关于|有关|围绕|针对|对|把)\s*", "", value)
-        value = re.sub(r"(?:的)?(?:相关)?(?:内容|资料|笔记|卡片|知识|主题|方向|这一块|这块|这方面|这个主题)$", "", value).strip()
+        value = re.sub(r"(?:的)?(?:相关|有关)?(?:的)?(?:内容|资料|材料|信息|事情|情况|笔记|卡片|知识|主题|方向|这一块|这块|这方面|这个主题)$", "", value).strip()
+        value = re.sub(r"(?:的)?(?:相关|有关)(?:的)?$", "", value).strip()
         value = re.sub(r"的$", "", value).strip()
         return self._strip_outer_quotes(value)
 
@@ -352,6 +359,8 @@ class ChatResponder:
         value = self._clean_topic_candidate(text)
         compact = re.sub(r"\s+", "", value.casefold())
         if self._looks_like_simple_nonretrieval(compact):
+            return False
+        if self._looks_like_detail_followup(value):
             return False
         if not re.search(r"[\w\u4e00-\u9fff]", value, re.U):
             return False
@@ -371,6 +380,7 @@ class ChatResponder:
         patterns: list[tuple[str, str]] = [
             ("summarize", r"^(?:请|麻烦|帮我|给我|你帮我|能不能|可以|可不可以)?\s*(?:总结一下|总结下|总结|复盘一下|复盘|梳理一下|梳理下|梳理|整理一下|整理下|整理)\s*"),
             ("explain", r"^(?:请|麻烦|帮我|给我|你帮我|能不能|可以|可不可以)?\s*(?:讲讲|说说|介绍一下|介绍下|介绍|解释一下|解释下|解释|聊聊)\s*"),
+            ("explain", r"^(?:请|麻烦|帮我|给我|你帮我|能不能|可以|可不可以)?\s*(?:告诉我|跟我说说|跟我讲讲|说一下|说下|聊一下|聊下)\s*(?:关于|有关)?\s*"),
             ("search", r"^(?:请|麻烦|帮我|给我|你帮我|能不能|可以|可不可以)?\s*(?:(?:从|在)?(?:我的|当前|本地)?(?:知识库|数据库|笔记|卡片|anttrail|brain)(?:里|中|里面)?\s*)?(?:有没有|有无|是否有|查一下|查下|查询一下|查询|搜索一下|搜索|检索一下|检索|找一下|找下|看看|看一下|看下)\s*"),
             ("search", r"^(?:(?:我的|当前|本地)?(?:知识库|数据库|笔记|卡片|anttrail|brain)(?:里|中|里面)?\s*)?(?:有没有|有无|是否有)\s*"),
             ("search", r"^(?:我想看|想看|我想查|想查|我想找|想找)\s*"),
@@ -391,9 +401,84 @@ class ChatResponder:
 
         return "", ""
 
-    def _build_retrieval_plan(self, text: str, history: list[dict[str, str]]) -> RetrievalPlan:
+    def _looks_like_detail_followup(self, text: str) -> bool:
+        value = re.sub(r"\s+", "", str(text or "").strip().casefold())
+        if not value or len(value) > 24:
+            return False
+        value = re.sub(r"[?？!！。.,，;；:：]+$", "", value)
+        return bool(re.match(
+            r"^(?:"
+            r"(?:具体|详细|仔细|深入)?(?:展开|展开说说|展开讲讲|说说|讲讲|聊聊|解释下|解释一下|介绍下|介绍一下)"
+            r"|(?:具体|详细|仔细|深入)(?:说说|讲讲|聊聊|解释下|解释一下)"
+            r"|(?:继续|接着)(?:说|讲|聊|展开)?"
+            r"|(?:再)?(?:具体|详细)(?:一点|点|些)"
+            r"|多说(?:一点|点|些)"
+            r")(?:吧|呢|呀|啊|可以吗)?$",
+            value,
+        ))
+
+    def _history_data(self, item: dict[str, Any]) -> dict[str, Any]:
+        data = item.get("data") if isinstance(item.get("data"), dict) else {}
+        return data
+
+    def _history_retrieval_plan(self, item: dict[str, Any]) -> dict[str, Any]:
+        direct = item.get("retrieval_plan") if isinstance(item.get("retrieval_plan"), dict) else {}
+        if direct:
+            return direct
+        data = self._history_data(item)
+        return data.get("retrieval_plan") if isinstance(data.get("retrieval_plan"), dict) else {}
+
+    def _history_retrieval(self, item: dict[str, Any]) -> dict[str, Any]:
+        direct = item.get("retrieval") if isinstance(item.get("retrieval"), dict) else {}
+        if direct:
+            return direct
+        data = self._history_data(item)
+        return data.get("retrieval") if isinstance(data.get("retrieval"), dict) else {}
+
+    def _retrieval_history_can_answer(self, retrieval: dict[str, Any]) -> bool:
+        if not retrieval:
+            return False
+        if retrieval.get("can_answer") is False:
+            return False
+        if retrieval.get("ok") is False:
+            return False
+        status = str(retrieval.get("status") or "").casefold()
+        if status in {"low_confidence", "topic_mismatch", "retrieval_client_exception", "skipped"}:
+            return False
+        confidence = retrieval.get("confidence") if isinstance(retrieval.get("confidence"), dict) else {}
+        return confidence.get("low_confidence") is not True
+
+    def _latest_retrieval_topic(self, history: list[dict[str, Any]]) -> str:
+        for item in reversed(history):
+            if item.get("role") != "assistant":
+                continue
+            retrieval = self._history_retrieval(item)
+            if retrieval and not self._retrieval_history_can_answer(retrieval):
+                continue
+            plan = self._history_retrieval_plan(item)
+            action = str(plan.get("action") or "").strip().casefold()
+            if action and action not in {"search", "expand", "explain", "summarize", "lookup", "ask"}:
+                continue
+            topic = str(plan.get("topic") or plan.get("query") or "").strip()
+            topic = self._clean_topic_candidate(topic)
+            if topic and self._looks_like_topic_phrase(topic):
+                return topic
+        return ""
+
+    def _latest_user_topic(self, history: list[dict[str, Any]]) -> str:
+        for item in reversed(history):
+            if item.get("role") != "user":
+                continue
+            _action, topic = self._extract_action_topic(item.get("text") or "")
+            if topic:
+                return topic
+        return ""
+
+    def _latest_followup_topic(self, history: list[dict[str, Any]]) -> str:
+        return self._latest_retrieval_topic(history) or self._latest_user_topic(history)
+
+    def _build_retrieval_plan(self, text: str, history: list[dict[str, Any]]) -> RetrievalPlan:
         value = str(text or "").strip()
-        compact = re.sub(r"\s+", "", value.casefold())
         if not self._rag_enabled():
             return RetrievalPlan(False, reason="rag_disabled")
         if (
@@ -402,27 +487,22 @@ class ChatResponder:
             or self._looks_like_simple_nonretrieval(value)
         ):
             return RetrievalPlan(False, reason="smalltalk")
+        if not re.search(r"[\w\u4e00-\u9fff]", value, re.U):
+            return RetrievalPlan(False, reason="no_searchable_text")
+        if self._looks_like_detail_followup(value):
+            topic = self._latest_followup_topic(history)
+            if topic:
+                return RetrievalPlan(True, query=topic, topic=topic, action="expand", used_history=True, reason="followup_topic_from_history")
         action, topic = self._extract_action_topic(value)
         if topic:
             return RetrievalPlan(True, query=topic, topic=topic, action=action or "lookup", reason="topic_extracted")
-        if len(compact) < 8 and not re.search(r"[?？]", compact):
-            return RetrievalPlan(False, reason="short_non_topic")
-        triggers = (
-            "怎么", "如何", "为什么", "什么", "哪些", "哪个", "有没有", "是否",
-            "方案", "流程", "步骤", "建议", "风险", "总结", "复盘", "资料",
-            "知识库", "数据库", "brain", "笔记", "卡片", "之前", "以前",
-            "记得", "查一下", "找一下", "搜索", "rag", "向量", "检索",
-        )
-        should_retrieve = any(trigger in compact for trigger in triggers) or len(compact) >= 18
-        if not should_retrieve:
-            return RetrievalPlan(False, reason="no_retrieval_signal")
         if history and self._needs_history_for_retrieval_query(text):
             lines = [f"当前问题：{self._clip(text, 800)}", "最近对话上下文："]
             for item in history[-4:]:
                 speaker = "用户" if item["role"] == "user" else "助手"
                 lines.append(f"{speaker}: {self._clip(item['text'], 260)}")
-            return RetrievalPlan(True, query="\n".join(lines), action="ask", used_history=True, reason="question_with_history")
-        return RetrievalPlan(True, query=self._clip(text, 800), action="ask", reason="question")
+            return RetrievalPlan(True, query="\n".join(lines), action="ask", used_history=True, reason="mandatory_database_first_with_history")
+        return RetrievalPlan(True, query=self._clip(text, 800), action="ask", reason="mandatory_database_first")
 
     def _needs_history_for_retrieval_query(self, text: str) -> bool:
         value = re.sub(r"\s+", "", str(text or "").strip().casefold())
@@ -441,7 +521,7 @@ class ChatResponder:
             return normalized
         return ""
 
-    def _build_retrieval_query(self, text: str, history: list[dict[str, str]]) -> str:
+    def _build_retrieval_query(self, text: str, history: list[dict[str, Any]]) -> str:
         return self._build_retrieval_plan(text, history).query
 
     def _env_int(self, name: str, default: int, *, minimum: int, maximum: int) -> int:
@@ -571,9 +651,32 @@ class ChatResponder:
         reason = retrieval.error or retrieval.answerability.get("reason") or ",".join(retrieval.warnings) or retrieval.status
         lines.extend([
             f"Lucas Database 检索状态：未找到可靠命中或检索不可用（{self._clip(reason, 260)}）。",
-            "如果用户问的是本地知识库、之前保存的内容、个人记录或入库卡片，只能说明没有可靠命中或需要更具体线索；不要拿其它主题的来源凑答案，不要声称已经从数据库查到了答案。",
+            "这轮回答不得使用通用常识、模型背景知识或其它主题来源补答案；只能说明没有可靠命中或需要更具体线索，不要声称已经从数据库查到了答案。",
         ])
         return lines
+
+    def _retrieval_display_topic(self, plan: RetrievalPlan) -> str:
+        if plan.topic:
+            return plan.topic
+        match = re.search(r"^当前问题：(.+)$", str(plan.query or ""), re.M)
+        if match:
+            return self._clip(match.group(1), 80)
+        return self._clip(plan.query, 80)
+
+    def _retrieval_failure_reply(self, retrieval: RetrievalResult, plan: RetrievalPlan) -> str:
+        topic = self._retrieval_display_topic(plan)
+        quoted_topic = f"「{topic}」" if topic else "这个问题"
+        reason = retrieval.error or retrieval.answerability.get("reason") or ",".join(retrieval.warnings) or retrieval.status
+        reason_text = self._clip(reason, 120)
+        if retrieval.ok:
+            return (
+                f"我先查了 AntTrail Database，但没有找到关于 {quoted_topic} 的可靠命中。"
+                "为了不凭模型常识乱猜，我先不展开通用解释；你可以换一个更具体的关键词，或先把相关材料入库后再问。"
+            )
+        return (
+            f"这轮按规则需要先查 AntTrail Database，但检索暂时不可用（{reason_text or 'unknown'}）。"
+            "我不会绕过数据库直接猜答案；等数据库检索恢复后再基于库内资料回答。"
+        )
 
     def _target_line(self, target: dict[str, Any]) -> str:
         enabled = "已勾选" if target.get("enabled") else "未勾选"
@@ -656,19 +759,13 @@ class ChatResponder:
                 error=str(ai.get("error") or "ai_config_unavailable"),
             )
         provider = ai.get("provider") if isinstance(ai.get("provider"), dict) else {}
-        if provider.get("api_key_present"):
-            source = provider.get("api_key_source") or "未知来源"
-            key = f"已检测到（来源：{source}）"
-        else:
-            key = f"缺少 {provider.get('api_key_env') or 'API Key'}"
-        connection = provider.get("connection_status") or "not_tested"
+        key = "已配置" if provider.get("api_key_present") else f"缺少 {provider.get('api_key_env') or 'API Key'}"
         reply = (
             "我按当前模型配置看到：\n"
             f"- 提供商：{provider.get('label') or ai.get('active_provider') or 'unknown'}。\n"
             f"- 模型：{provider.get('model') or '未配置'}。\n"
             f"- Base URL：{provider.get('base_url') or '未配置'}。\n"
-            f"- Key 状态：{key}。\n"
-            f"- 连接测试：{connection}。只有点击“测试连接”成功后，才能认为模型 API 真的连通。"
+            f"- Key 状态：{key}。"
         )
         return ChatResponse(
             ok=True,
@@ -708,6 +805,11 @@ class ChatResponder:
             return "模型配置还没准备好：当前模型名为空。请在设置里的「模型配置」选择或填写模型名。"
         if error == "empty_model_response":
             return "模型已返回，但内容为空。可以重试一次，或在设置里测试当前模型连接。"
+        if str(error or "").startswith("transient_network_error"):
+            return (
+                "模型连接不稳定：上游或中转站的网络/TLS 连接提前断开。"
+                "系统已做短重试但仍失败；可以稍后重试，或在「模型配置」里测试连接并检查 Base URL、中转站状态和本机网络。"
+            )
         return f"模型暂时没有返回有效回复：{error}"
 
     def respond(
@@ -789,6 +891,21 @@ class ChatResponder:
             "can_answer": False,
             "query": "",
         }
+
+        if retrieval_plan.should_retrieve and retrieval is not None and retrieval.attempted and not retrieval.can_answer:
+            return ChatResponse(
+                ok=True,
+                reply_text=self._retrieval_failure_reply(retrieval, retrieval_plan),
+                intent=intent.intent,
+                confidence=intent.confidence,
+                data={
+                    **intent.to_dict(),
+                    "model_called": False,
+                    "retrieval_plan": retrieval_plan.to_dict(),
+                    "retrieval": retrieval_data,
+                    "database_first_enforced": True,
+                },
+            )
 
         model_result = self.router.generate_text(
             "chat_response",

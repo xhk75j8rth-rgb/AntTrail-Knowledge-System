@@ -76,7 +76,7 @@ MCP 边界：
 }
 ```
 
-普通无链接消息会进入 fallback 对话分支。普通知识型无链接消息会先尝试 Lucas Database RAG：Chat Gateway 通过 HTTP 调用 Lucas Database `POST /api/agent/retrieve`，而不是通过 MCP。命中可靠上下文时，模型 prompt 会包含 `context.text`，回复应使用 `[Source n]` 引用证据；低置信、超时或不可用时，prompt 会明确要求模型不要声称已经从数据库查到答案。问候、状态追问、配置问答和修订请求会跳过检索。
+普通无链接消息会进入 fallback 对话分支。普通知识型无链接消息必须先尝试 Lucas Database RAG：Chat Gateway 通过 HTTP 调用 Lucas Database `POST /api/agent/retrieve`，而不是通过 MCP。命中可靠上下文时，模型 prompt 会包含 `context.text`，回复应使用 `[Source n]` 引用证据；低置信、超时或不可用时，fallback 会确定性返回“没有可靠命中 / 检索不可用”，不会再让模型用通用常识补答案。问候、状态追问、配置问答和修订请求会跳过检索。
 
 RAG 结果会透传到 `data.retrieval`：
 

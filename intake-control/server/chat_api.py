@@ -656,6 +656,105 @@ def _set_batch_item(batch_id: str, item_index: int, updates: dict[str, Any]) -> 
         batch["updated_at_ms"] = _now_ms()
 
 
+def _cancelled_item_indexes_locked(batch: dict[str, Any]) -> set[int]:
+    raw_indexes = batch.setdefault("cancelled_item_indexes", set())
+    if isinstance(raw_indexes, set):
+        return raw_indexes
+    indexes: set[int] = set()
+    if isinstance(raw_indexes, list):
+        for value in raw_indexes:
+            try:
+                indexes.add(int(value))
+            except (TypeError, ValueError):
+                continue
+    batch["cancelled_item_indexes"] = indexes
+    return indexes
+
+
+def _is_async_batch_item_cancelled(batch_id: str, item_index: int) -> bool:
+    with ASYNC_BATCH_LOCK:
+        batch = ASYNC_BATCHES.get(batch_id)
+        if not batch:
+            return True
+        return item_index in _cancelled_item_indexes_locked(batch)
+
+
+def _remember_async_process(batch_id: str, item_index: int, process: subprocess.Popen[str]) -> None:
+    with ASYNC_BATCH_LOCK:
+        batch = ASYNC_BATCHES.get(batch_id)
+        if not batch:
+            return
+        processes = batch.setdefault("processes", {})
+        if isinstance(processes, dict):
+            processes[item_index] = process
+
+
+def _forget_async_process(batch_id: str, item_index: int) -> None:
+    with ASYNC_BATCH_LOCK:
+        batch = ASYNC_BATCHES.get(batch_id)
+        if not batch:
+            return
+        processes = batch.get("processes")
+        if isinstance(processes, dict):
+            processes.pop(item_index, None)
+
+
+def _terminate_async_process_tree(process: subprocess.Popen[str]) -> None:
+    if process.poll() is not None:
+        return
+    if os.name == "nt":
+        try:
+            subprocess.run(
+                ["taskkill", "/PID", str(process.pid), "/T", "/F"],
+                shell=False,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                timeout=8,
+                check=False,
+            )
+            if process.poll() is not None:
+                return
+        except Exception:
+            pass
+    try:
+        process.terminate()
+        process.wait(timeout=5)
+    except Exception:
+        try:
+            process.kill()
+        except Exception:
+            pass
+
+
+def _delete_async_batch_item(batch_id: str, item_index: int) -> dict[str, Any]:
+    _validate_job_id(batch_id)
+    if item_index < 1:
+        raise HTTPException(status_code=400, detail="Invalid item_index")
+
+    process: subprocess.Popen[str] | None = None
+    with ASYNC_BATCH_LOCK:
+        batch = ASYNC_BATCHES.get(batch_id)
+        if not batch:
+            raise HTTPException(status_code=404, detail="Batch not found")
+        _cancelled_item_indexes_locked(batch).add(item_index)
+        processes = batch.get("processes")
+        if isinstance(processes, dict):
+            process = processes.pop(item_index, None)
+        items = batch.get("items") if isinstance(batch.get("items"), list) else []
+        kept_items = [item for item in items if int(item.get("index") or 0) != item_index]
+        if len(kept_items) == len(items) and process is None:
+            raise HTTPException(status_code=404, detail="Batch item not found")
+        batch["items"] = kept_items
+        batch["updated_at_ms"] = _now_ms()
+
+    if process is not None:
+        _terminate_async_process_tree(process)
+    return _batch_response(batch_id)
+
+
 def _read_text_file(path: Path) -> str:
     try:
         return path.read_text(encoding="utf-8", errors="replace")
@@ -732,6 +831,8 @@ def _poll_job_status_into_item(batch_id: str, item_index: int, job_dir: Path, ur
 
 
 def _run_async_queue_item(batch_id: str, item_index: int, url: str, timeout_sec: int, source_text: str) -> None:
+    if _is_async_batch_item_cancelled(batch_id, item_index):
+        return
     started_at = time.time()
     stdout_path = Path(tempfile.gettempdir()) / f"lucas-link-{batch_id}-{item_index}.stdout.json"
     stderr_path = Path(tempfile.gettempdir()) / f"lucas-link-{batch_id}-{item_index}.stderr.log"
@@ -767,7 +868,11 @@ def _run_async_queue_item(batch_id: str, item_index: int, url: str, timeout_sec:
                 stderr=stderr_fh,
                 creationflags=link_handler._runner_creationflags(),
             )
+            _remember_async_process(batch_id, item_index, process)
             while process.poll() is None:
+                if _is_async_batch_item_cancelled(batch_id, item_index):
+                    _terminate_async_process_tree(process)
+                    return
                 if time.time() - started_at > timeout_sec:
                     timed_out = True
                     process.kill()
@@ -792,6 +897,7 @@ def _run_async_queue_item(batch_id: str, item_index: int, url: str, timeout_sec:
         _set_batch_item(batch_id, item_index, completed)
         return
     finally:
+        _forget_async_process(batch_id, item_index)
         link_handler._remove_temp_file(source_text_path)
 
     stdout = _read_text_file(stdout_path)
@@ -1026,13 +1132,10 @@ def post_ai_test(payload: dict[str, Any]) -> dict[str, Any]:
         system_prompt="你是一个 API 连通性测试助手。",
         metadata={"timeout_sec": timeout_sec, "max_tokens": 16},
     )
-    provider_payload = config.masked()
-    provider_payload["connection_tested"] = True
-    provider_payload["connection_status"] = "connected" if result.ok else "failed"
     return {
         "ok": result.ok,
         "status": "connected" if result.ok else "failed",
-        "provider": provider_payload,
+        "provider": config.masked(),
         "reply_text": result.text[:200],
         "error": result.error,
         "raw_usage": result.raw_usage,
@@ -1226,6 +1329,11 @@ def post_chat_message_async(
 def get_chat_batch(batch_id: str) -> dict[str, Any]:
     _validate_job_id(batch_id)
     return _batch_response(batch_id)
+
+
+@app.delete("/api/chat/batches/{batch_id}/items/{item_index}")
+def delete_chat_batch_item(batch_id: str, item_index: int) -> dict[str, Any]:
+    return _delete_async_batch_item(batch_id, item_index)
 
 
 @app.get("/api/jobs/{job_id}")

@@ -6,6 +6,7 @@ import urllib.error
 import urllib.request
 from typing import Any
 
+from ai_layer.http_network import is_transient_network_error, retry_attempt_count, transient_network_error_detail
 from ai_layer.provider_config import ProviderRuntimeConfig
 
 
@@ -66,9 +67,23 @@ def fetch_model_catalog(config: ProviderRuntimeConfig, timeout_sec: int = 20) ->
         headers=headers,
         method="GET",
     )
+    max_attempts = retry_attempt_count({"network_retry_attempts": 2})
+    last_exc: BaseException | None = None
     try:
-        with urllib.request.urlopen(req, timeout=timeout_sec) as response:
-            body_text = response.read().decode("utf-8", errors="replace")
+        for attempt in range(1, max_attempts + 1):
+            try:
+                with urllib.request.urlopen(req, timeout=timeout_sec) as response:
+                    body_text = response.read().decode("utf-8", errors="replace")
+                break
+            except urllib.error.HTTPError:
+                raise
+            except Exception as exc:
+                last_exc = exc
+                if not is_transient_network_error(exc) or attempt >= max_attempts:
+                    raise
+                time.sleep(min(0.8, 0.2 * attempt))
+        else:
+            raise last_exc or RuntimeError("network_error")
         try:
             payload = json.loads(body_text)
         except json.JSONDecodeError:
@@ -108,7 +123,7 @@ def fetch_model_catalog(config: ProviderRuntimeConfig, timeout_sec: int = 20) ->
             "status": "failed",
             "provider": config.masked(),
             "models": [],
-            "error": str(exc),
+            "error": transient_network_error_detail(exc, attempts=max_attempts) if is_transient_network_error(exc) else str(exc),
             "latency_ms": int((time.perf_counter() - started) * 1000),
             "used_mcp": False,
         }
