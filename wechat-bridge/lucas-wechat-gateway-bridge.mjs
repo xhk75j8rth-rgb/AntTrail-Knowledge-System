@@ -1,16 +1,8 @@
 #!/usr/bin/env node
+import fs from "node:fs";
 import path from "node:path";
 import { createRequire } from "node:module";
-import { fileURLToPath } from "node:url";
-
-import { ensureWechatCredentials, loadExistingCredentials, runWechatLogin } from "./vendor/cli-wechat-bridge/dist/wechat/setup.js";
-import {
-  DEFAULT_LONG_POLL_TIMEOUT_MS,
-  WeChatTransport,
-  classifyWechatTransportError,
-  describeWechatTransportError,
-  isWechatContextTokenStaleError,
-} from "./vendor/cli-wechat-bridge/dist/wechat/wechat-transport.js";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const DEFAULT_GATEWAY_URL =
   process.env.LUCAS_CHAT_GATEWAY_URL ||
@@ -32,6 +24,93 @@ const SEND_RETRY_ATTEMPTS = 3;
 const currentFile = fileURLToPath(import.meta.url);
 const bridgeRoot = path.dirname(currentFile);
 const require = createRequire(import.meta.url);
+const CLI_WECHAT_BRIDGE_ROOT = resolveCliWechatBridgeRoot();
+
+const {
+  ensureWechatCredentials,
+  loadExistingCredentials,
+  runWechatLogin,
+} = await importCliWechatBridgeModule("dist/wechat/setup.js");
+const {
+  DEFAULT_LONG_POLL_TIMEOUT_MS,
+  WeChatTransport,
+  classifyWechatTransportError,
+  describeWechatTransportError,
+  isWechatContextTokenStaleError,
+} = await importCliWechatBridgeModule("dist/wechat/wechat-transport.js");
+
+function addCliWechatBridgeRootCandidate(candidates, value) {
+  const text = String(value || "").trim();
+  if (!text) return;
+  candidates.push(text);
+  if (!text.toLowerCase().endsWith(`${path.sep}cli-wechat-bridge`) && !text.toLowerCase().endsWith("/cli-wechat-bridge")) {
+    candidates.push(path.join(text, "cli-wechat-bridge"));
+  }
+}
+
+function cliWechatBridgeRootCandidates() {
+  const candidates = [];
+  for (const value of [
+    process.env.LUCAS_CLI_WECHAT_BRIDGE_ROOT,
+    process.env.CLI_WECHAT_BRIDGE_ROOT,
+    path.join(bridgeRoot, "vendor", "cli-wechat-bridge"),
+  ]) {
+    addCliWechatBridgeRootCandidate(candidates, value);
+  }
+
+  try {
+    addCliWechatBridgeRootCandidate(candidates, path.dirname(require.resolve("cli-wechat-bridge/package.json")));
+  } catch {
+    // The package is often installed globally and therefore not visible to normal ESM resolution.
+  }
+
+  addCliWechatBridgeRootCandidate(candidates, path.join(path.dirname(process.execPath), "node_modules", "cli-wechat-bridge"));
+  for (const value of [process.env.NVM_SYMLINK, process.env.NVM_HOME]) {
+    if (value) {
+      addCliWechatBridgeRootCandidate(candidates, path.join(value, "node_modules", "cli-wechat-bridge"));
+    }
+  }
+  if (process.env.APPDATA) {
+    addCliWechatBridgeRootCandidate(candidates, path.join(process.env.APPDATA, "npm", "node_modules", "cli-wechat-bridge"));
+  }
+  if (process.env.LOCALAPPDATA) {
+    addCliWechatBridgeRootCandidate(candidates, path.join(process.env.LOCALAPPDATA, "nvm", `v${process.versions.node}`, "node_modules", "cli-wechat-bridge"));
+  }
+  for (const nodePathEntry of String(process.env.NODE_PATH || "").split(path.delimiter)) {
+    addCliWechatBridgeRootCandidate(candidates, nodePathEntry);
+  }
+  return candidates;
+}
+
+function resolveCliWechatBridgeRoot() {
+  const checked = [];
+  const seen = new Set();
+  for (const candidate of cliWechatBridgeRootCandidates()) {
+    const root = path.resolve(candidate);
+    const key = root.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    const setupPath = path.join(root, "dist", "wechat", "setup.js");
+    const transportPath = path.join(root, "dist", "wechat", "wechat-transport.js");
+    checked.push(root);
+    if (fs.existsSync(setupPath) && fs.existsSync(transportPath)) {
+      return root;
+    }
+  }
+
+  throw new Error(
+    [
+      "CLI-WeChat-Bridge runtime not found.",
+      "Expected dist/wechat/setup.js and dist/wechat/wechat-transport.js under one of:",
+      ...checked.map((item) => `  - ${item}`),
+      "Install cli-wechat-bridge globally, restore wechat-bridge/vendor/cli-wechat-bridge, or set LUCAS_CLI_WECHAT_BRIDGE_ROOT.",
+    ].join("\n"),
+  );
+}
+
+async function importCliWechatBridgeModule(relativePath) {
+  return import(pathToFileURL(path.join(CLI_WECHAT_BRIDGE_ROOT, relativePath)).href);
+}
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(String(value ?? ""), 10);

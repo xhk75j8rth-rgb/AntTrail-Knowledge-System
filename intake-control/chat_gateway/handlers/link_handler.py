@@ -253,12 +253,13 @@ def _card_status(result: dict[str, Any]) -> str:
 
 
 def _write_status(result: dict[str, Any]) -> str:
-    write_result = result.get("write_result") or {}
-    if result.get("siyuan_write_ok") or write_result.get("ok"):
+    locations = _storage_locations(result)
+    if any(item.get("ok") for item in locations):
         return "written"
+    write_result = result.get("write_result") or {}
     if write_result.get("skipped") or result.get("siyuan_write_skipped_reason"):
         return "skipped"
-    if write_result:
+    if locations or write_result:
         return "failed"
     return "unknown"
 
@@ -396,7 +397,9 @@ def _storage_locations(result: dict[str, Any]) -> list[dict[str, Any]]:
     locations: list[dict[str, Any]] = []
     write_result = result.get("write_result") if isinstance(result.get("write_result"), dict) else {}
     siyuan_disabled = write_result.get("skipped") and write_result.get("skipped_reason") == "disabled_by_storage_targets"
-    if write_result and not siyuan_disabled:
+    configured_targets = result.get("storage_targets")
+    siyuan_configured = not isinstance(configured_targets, list) or "siyuan" in configured_targets
+    if write_result and not siyuan_disabled and siyuan_configured:
         path = _clean_inline_text(write_result.get("path"))
         locations.append({
             "target": "siyuan",
@@ -485,8 +488,7 @@ def _reply_storage_layers(result: dict[str, Any]) -> str:
 
 
 def _access_status_label(result: dict[str, Any]) -> str:
-    write_result = result.get("write_result") or {}
-    storage_ok = bool(result.get("siyuan_write_ok") or write_result.get("ok") or result.get("lucas_database_write_ok"))
+    storage_ok = any(item.get("ok") for item in _storage_locations(result))
     if not storage_ok:
         return "否"
 
@@ -686,7 +688,7 @@ def _build_queue_reply(queue: dict[str, Any], *, dry_run: bool) -> str:
         f"已检测到 {queue.get('total', 0)} 个链接，执行模式：{mode_label}。",
     ]
     if dry_run:
-        lines.append("Dry-run：未调用 run_link_job.py，未写入 SiYuan。")
+        lines.append("Dry-run：未调用 run_link_job.py，未写入任何存储目标。")
     lines.append(
         "队列状态："
         f"已完成 {queue.get('completed', 0)} / "
@@ -745,7 +747,7 @@ def handle(
             mode="parallel" if len(links.urls) > 1 else "single",
         )
         if len(links.urls) == 1:
-            reply = f"已检测到链接：{url}\nDry-run：未调用 run_link_job.py，未写入 SiYuan。"
+            reply = f"已检测到链接：{url}\nDry-run：未调用 run_link_job.py，未写入任何存储目标。"
         else:
             reply = _build_queue_reply(queue, dry_run=True)
         return HandlerResponse(

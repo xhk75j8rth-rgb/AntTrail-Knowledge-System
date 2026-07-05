@@ -144,8 +144,8 @@ def _storage_status(runner_env: Mapping[str, str] | None) -> tuple[dict[str, Any
         warnings.append(_warning(
             "storage_targets_disabled",
             "自动写入目标未启用",
-            "当前没有启用 SiYuan 或 Lucas Database 写入目标；真实处理只会保留本地 job 和卡片草稿。",
-            "在设置里的存储配置启用 SiYuan、Lucas Database，或同时启用两者。",
+            "当前没有启用 AntTrail Database 写入目标；真实处理只会保留本地 job 和卡片草稿。",
+            "在设置里的存储配置启用 AntTrail Database。",
             target="storage",
         ))
     for target in targets:

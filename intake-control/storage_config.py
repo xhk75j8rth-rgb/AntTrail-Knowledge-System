@@ -304,19 +304,29 @@ def _target_status(target_id: str, enabled_targets: list[str], raw: dict[str, An
     }
 
 
+def _should_show_target_status(target: dict[str, Any]) -> bool:
+    if target.get("enabled") or target.get("can_write"):
+        return True
+    if str(target.get("target_id") or "") == "siyuan":
+        return False
+    return True
+
+
 def get_storage_capabilities() -> dict[str, Any]:
     raw = _read_local_config()
     pipeline = _pipeline_storage_public()
     targets = pipeline["storage_targets"]
-    target_options = [
+    all_target_options = [
         _target_status("siyuan", targets, raw),
         _target_status("lucas_database", targets, raw),
     ]
+    target_options = [target for target in all_target_options if _should_show_target_status(target)]
     writable_targets = [target for target in target_options if target["can_write"]]
     enabled_targets = [target for target in target_options if target["enabled"]]
     return {
         "ok": True,
         "active_provider": resolve_storage_provider()["provider_id"],
+        "all_target_options": all_target_options,
         "target_options": target_options,
         "enabled_targets": enabled_targets,
         "writable_targets": writable_targets,

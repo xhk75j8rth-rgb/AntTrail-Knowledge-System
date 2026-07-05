@@ -162,6 +162,47 @@ class ChatGatewayTests(unittest.TestCase):
         writable = {item["target_id"] for item in response.data["storage"]["writable_targets"]}
         self.assertEqual(writable, {"siyuan", "lucas_database"})
 
+    def test_storage_config_question_hides_unconfigured_siyuan(self) -> None:
+        storage_path = Path(self._tmpdir.name) / "storage.local.json"
+        storage_env_path = Path(self._tmpdir.name) / ".env"
+        pipeline_path = Path(self._tmpdir.name) / "link_pipeline.json"
+        storage_path.write_text(json.dumps({
+            "active_provider": "lucas_database",
+            "providers": {
+                "lucas_database": {"base_url": "http://127.0.0.1:8765", "endpoint": "/api/cards/ingest"},
+            },
+        }, ensure_ascii=False), encoding="utf-8")
+        storage_env_path.write_text("LUCAS_DB_API_KEY=db-key\nSIYUAN_TOKEN=stale-siyuan-token\n", encoding="utf-8")
+        pipeline_path.write_text(json.dumps({
+            "storage_targets": ["lucas_database"],
+            "lucas_database_write_policy": "all_cards",
+        }, ensure_ascii=False), encoding="utf-8")
+        event = MessageEvent.from_text(
+            "没什么没有写入本机数据库",
+            channel="debug_cli",
+            conversation_id="test-room",
+            sender_id="lucas",
+        )
+
+        with patch.dict(os.environ, {
+            "LUCAS_STORAGE_CONFIG_PATH": str(storage_path),
+            "LUCAS_STORAGE_ENV_PATH": str(storage_env_path),
+            "LUCAS_LINK_PIPELINE_CONFIG_PATH": str(pipeline_path),
+            "AI_LAYER_PROVIDER": "mock",
+        }, clear=False):
+            response = route_message(event, dry_run=True)
+
+        self.assertTrue(response.ok)
+        self.assertEqual(response.status, "storage_config_query")
+        self.assertIn("目标是 AntTrail Database", response.reply_text)
+        self.assertIn("现在实际可写是 AntTrail Database", response.reply_text)
+        self.assertNotIn("SiYuan", response.reply_text)
+        self.assertNotIn("思源", response.reply_text)
+        self.assertEqual(
+            [item["target_id"] for item in response.data["storage"]["target_options"]],
+            ["lucas_database"],
+        )
+
     def test_status_followup_reply_is_concise_without_guessing(self) -> None:
         os.environ["AI_LAYER_PROVIDER"] = "mock"
         event = MessageEvent.from_text(
@@ -266,6 +307,12 @@ class ChatGatewayTests(unittest.TestCase):
     def test_storage_targets_can_disable_external_sinks(self) -> None:
         self.assertEqual(normalize_storage_targets({"storage_targets": []}), [])
         self.assertEqual(normalize_storage_targets({"storage_targets": "none"}), [])
+
+    def test_missing_storage_targets_defaults_to_lucas_database(self) -> None:
+        config = {}
+
+        self.assertEqual(normalize_storage_targets(config), ["lucas_database"])
+        self.assertEqual(lucas_database_write_policy(config), "all_cards")
 
     def test_link_reply_includes_config_warnings_before_user_reply(self) -> None:
         self._configure_missing_preflight_env(["siyuan", "lucas_database"])
@@ -569,6 +616,66 @@ class ChatGatewayTests(unittest.TestCase):
         reply_card = response.data["result"]["reply_card"]
         self.assertEqual(reply_card["file_tree"], "/知识卡/AI/内容生产/图像 / 视频生成")
         self.assertEqual(reply_card["storage_targets"], "SiYuan、主数据库")
+        self.assertTrue(reply_card["access_ok"])
+
+    def test_single_link_reply_hides_siyuan_when_only_database_target_is_configured(self) -> None:
+        event = MessageEvent.from_text(
+            "https://v.douyin.com/database-only/",
+            channel="debug_cli",
+            conversation_id="test-room",
+            sender_id="lucas",
+        )
+        job_dir = Path(self._tmpdir.name) / "job-database-only"
+        job_dir.mkdir()
+        (job_dir / "composed_card.json").write_text(json.dumps({
+            "display_title": "数据库优先写入测试",
+            "one_sentence_summary": "这条卡片用于确认只启用 AntTrail Database 时不会展示未启用目标的失败状态。",
+            "reusable_value": ["只展示真实启用的写入目标，避免历史 sink 的失败状态干扰判断。"],
+        }, ensure_ascii=False), encoding="utf-8")
+        (job_dir / "taxonomy_decision.json").write_text(json.dumps({
+            "schema_name": "TaxonomyDecisionV1",
+            "recommended_path": ["AI", "知识库", "结构化卡片"],
+        }, ensure_ascii=False), encoding="utf-8")
+        result = {
+            "ok": True,
+            "job_id": "job-database-only",
+            "job_dir": str(job_dir),
+            "url": "https://v.douyin.com/database-only/",
+            "final_status": "completed_formal",
+            "card_type": "formal_summary",
+            "quality_gate_passed": True,
+            "title": "数据库优先写入测试",
+            "siyuan_write_ok": False,
+            "write_result": {
+                "ok": False,
+                "stage": "request",
+                "error": "SiYuan HTTP API unavailable",
+            },
+            "storage_targets": ["lucas_database"],
+            "lucas_database_write_result": {
+                "ok": True,
+                "stage": "completed",
+                "target_id": "main",
+                "target_label": "主数据库",
+                "path": "/知识卡/AI/知识库/结构化卡片/数据库优先写入测试",
+                "card_id": "card-database-only",
+                "node_id": "node-database-only",
+            },
+            "lucas_database_write_ok": True,
+            "used_mcp": False,
+        }
+
+        with patch("chat_gateway.handlers.link_handler._run_link_job", return_value=(0, result, "")):
+            response = route_message(event, dry_run=False, timeout_sec=5)
+
+        self.assertTrue(response.ok)
+        self.assertIn("接入结果：是｜标题：数据库优先写入测试", response.reply_text)
+        self.assertIn("写入目标：主数据库", response.reply_text)
+        self.assertIn("写入层级：主数据库：/知识卡/AI/知识库/结构化卡片", response.reply_text)
+        self.assertNotIn("SiYuan", response.reply_text)
+        reply_card = response.data["result"]["reply_card"]
+        self.assertEqual(reply_card["storage_targets"], "主数据库")
+        self.assertEqual([item["target"] for item in reply_card["storage_locations"]], ["lucas_database"])
         self.assertTrue(reply_card["access_ok"])
 
     def test_link_runner_hides_child_python_console_on_windows(self) -> None:

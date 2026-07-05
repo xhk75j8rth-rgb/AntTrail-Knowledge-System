@@ -44,7 +44,7 @@ wechat-bridge/VENDOR.md
 -> 微信桥回发微信
 ```
 
-兼容的第三方桥包可以放在：
+微信桥优先使用本仓库内的 vendored 包；如果 release 目录没有带上它，会继续尝试本机全局安装的 `cli-wechat-bridge`。也可以用 `LUCAS_CLI_WECHAT_BRIDGE_ROOT` 指定包根目录。兼容的第三方桥包可以放在：
 
 ```text
 wechat-bridge/vendor/cli-wechat-bridge/

@@ -561,6 +561,50 @@ class AILayerTests(unittest.TestCase):
         self.assertIn("Endpoint /api/cards/ingest", detail_response.reply_text)
         self.assertIn("缺少 LUCAS_DB_API_KEY", detail_response.reply_text)
 
+    def test_chat_responder_prompt_omits_unconfigured_siyuan_target(self) -> None:
+        class FakeRouter:
+            def __init__(self) -> None:
+                self.last_prompt = ""
+
+            def generate_text(self, task_type, prompt, system_prompt=None, metadata=None):  # noqa: ANN001
+                self.last_prompt = prompt
+                return ModelResult(
+                    ok=True,
+                    text="根据当前配置，本机数据库写入目标是 AntTrail Database。",
+                    model_provider="mock",
+                    model_name="mock-model",
+                )
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            storage_path = root / "storage.local.json"
+            env_path = root / ".env"
+            pipeline_path = root / "link_pipeline.json"
+            storage_path.write_text(json.dumps({
+                "active_provider": "lucas_database",
+                "providers": {
+                    "lucas_database": {"base_url": "http://127.0.0.1:8765", "endpoint": "/api/cards/ingest"},
+                },
+            }, ensure_ascii=False), encoding="utf-8")
+            env_path.write_text("LUCAS_DB_API_KEY=db-key\n", encoding="utf-8")
+            pipeline_path.write_text(json.dumps({
+                "storage_targets": ["lucas_database"],
+                "lucas_database_write_policy": "all_cards",
+            }, ensure_ascii=False), encoding="utf-8")
+
+            router = FakeRouter()
+            with patch.dict(os.environ, {
+                "LUCAS_STORAGE_CONFIG_PATH": str(storage_path),
+                "LUCAS_STORAGE_ENV_PATH": str(env_path),
+                "LUCAS_LINK_PIPELINE_CONFIG_PATH": str(pipeline_path),
+            }, clear=False):
+                response = ChatResponder(router=router).respond("那这条写入状态怎么判断")
+
+        self.assertTrue(response.ok)
+        self.assertIn("AntTrail Database", router.last_prompt)
+        self.assertNotIn("SiYuan", router.last_prompt)
+        self.assertNotIn("思源", router.last_prompt)
+
     def test_chat_responder_status_followup_is_short_and_does_not_guess(self) -> None:
         class ExplodingRouter:
             def generate_text(self, *args, **kwargs):  # noqa: ANN002, ANN003

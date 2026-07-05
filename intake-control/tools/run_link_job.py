@@ -646,9 +646,9 @@ def normalize_storage_targets(config: dict[str, Any]) -> list[str]:
         return []
     raw = config.get("storage_targets", config.get("storage_target"))
     if raw is None:
-        targets = ["siyuan"]
+        targets = ["lucas_database"]
         if config_bool(config, "enable_lucas_database_write", False):
-            targets.append("lucas_database")
+            targets = ["lucas_database"]
         return targets
     if isinstance(raw, str):
         if raw.strip().casefold() in {"", "none", "off", "disabled", "local_only", "local-only"}:

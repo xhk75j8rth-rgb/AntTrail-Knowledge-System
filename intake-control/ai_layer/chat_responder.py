@@ -276,6 +276,7 @@ class ChatResponder:
             r"(勾选|已选).*(siyuan|思源|brain|数据库|知识库)",
             r"(有哪些|哪些|什么).*(知识库|数据库).*(接入|连接|配置|目标)",
             r"(知识库|数据库).*(接入|连接).*(有哪些|哪些|什么|配置|目标)",
+            r"(没有|没|未).*(写入|入库).*(本机)?(数据库|知识库|anttrail|brain)",
         ]
         return any(re.search(pattern, value) for pattern in patterns)
 

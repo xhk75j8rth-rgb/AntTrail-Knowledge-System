@@ -15,13 +15,19 @@ repository: https://github.com/UNLINEARITY/CLI-WeChat-Bridge
 license: AGPL-3.0-or-later
 ```
 
-For local WeChat bridge experiments, install or copy a compatible package into:
+For local WeChat bridge experiments, install or copy a compatible package into the expected vendored location:
 
 ```text
 wechat-bridge/vendor/cli-wechat-bridge/
 ```
 
-The vendored copy intentionally includes only:
+Some release folders may omit the vendored copy. The Lucas gateway bridge now resolves the runtime in this order:
+
+1. `LUCAS_CLI_WECHAT_BRIDGE_ROOT`
+2. `wechat-bridge/vendor/cli-wechat-bridge/`
+3. the globally installed `cli-wechat-bridge`
+
+When present, the vendored copy intentionally includes only:
 
 ```text
 bin/
@@ -44,7 +50,7 @@ Use your own external bridge adapter if you do not want to copy a package into `
 
 ## Lucas Hook
 
-Current UI startup path uses `wechat-bridge/scripts/start-lucas-wechat-gateway-bridge.ps1`, which reuses the vendored WeChat transport but sends all text to Lucas Chat Gateway. The package hook below is kept as historical compatibility context.
+Current UI startup path uses `wechat-bridge/scripts/start-lucas-wechat-gateway-bridge.ps1`, which reuses the resolved WeChat transport but sends all text to Lucas Chat Gateway. The package hook below is kept as historical compatibility context.
 
 The package already has a Lucas-specific link hook in:
 
